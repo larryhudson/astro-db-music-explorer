@@ -1,0 +1,32 @@
+---
+import Layout from "@src/components/Layout.astro";
+import { Debug } from "astro:components";
+
+function getSpotifyAuthUrl() {
+  const spotifyUrlBase = "https://accounts.spotify.com/authorize";
+  const clientId = import.meta.env.SPOTIFY_CLIENT_ID;
+  const redirectUri = import.meta.env.SPOTIFY_REDIRECT_URI;
+  const scopes = ["user-top-read"];
+  const spotifyUrl = new URL(spotifyUrlBase);
+  spotifyUrl.searchParams.append("client_id", clientId);
+  spotifyUrl.searchParams.append("response_type", "code");
+  spotifyUrl.searchParams.append("redirect_uri", redirectUri);
+  spotifyUrl.searchParams.append("scope", scopes.join(" "));
+  return spotifyUrl.toString();
+}
+
+const currentUser = Astro.locals.user;
+const spotifyToken = await Astro.locals.getSpotifyToken();
+
+const spotifyAuthUrl = getSpotifyAuthUrl();
+
+if (!spotifyToken) {
+  return Astro.redirect(spotifyAuthUrl);
+}
+---
+
+<Layout title="Login with Spotify">
+  <Debug {currentUser} />
+  <Debug {spotifyToken} />
+  <p>Hello there</p>
+</Layout>

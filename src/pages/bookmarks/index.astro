@@ -1,0 +1,116 @@
+---
+import Layout from "@src/components/Layout.astro";
+import BookmarksListGrid from "@src/components/BookmarksListGrid.astro";
+
+import { db, Bookmark, eq, and, isNull, NOW } from "astro:db";
+import { Debug } from "astro:components";
+
+let statusMessage;
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const formAction = formData.get("form-action");
+
+  if (formAction === "archive") {
+    const id = formData.get("id");
+    await db
+      .update(Bookmark)
+      .set({
+        status: "archived",
+        statusChangedAt: NOW,
+        statusChangedFrom: "to_check_out",
+      })
+      .where(eq(Bookmark.id, id));
+    statusMessage = "Bookmark archived.";
+  } else if (formAction === "mark_as_checking_out") {
+    const id = formData.get("id");
+    await db
+      .update(Bookmark)
+      .set({
+        status: "checking_out",
+        statusChangedAt: NOW,
+        statusChangedFrom: "to_check_out",
+      })
+      .where(eq(Bookmark.id, id));
+    statusMessage = "Bookmark marked as in rotation.";
+  } else if (formAction === "snooze") {
+    const id = formData.get("id");
+    const snoozeUrl = new URL(`/bookmarks/${id}/snooze/`, Astro.url.origin);
+    snoozeUrl.searchParams.set("return_to", Astro.url.pathname);
+    return Astro.redirect(snoozeUrl);
+  }
+}
+
+const bookmarksInRotation = await db
+  .select()
+  .from(Bookmark)
+  .where(
+    and(
+      eq(Bookmark.userId, currentUser.id),
+      eq(Bookmark.status, "checking_out"),
+    ),
+  );
+
+const bookmarksToCheckOut = await db
+  .select()
+  .from(Bookmark)
+  .where(
+    and(
+      eq(Bookmark.userId, currentUser.id),
+      eq(Bookmark.status, "to_check_out"),
+    ),
+  );
+---
+
+<Layout title="Bookmarks">
+  {statusMessage && <p>{statusMessage}</p>}
+  <p>This is going to be the bookmarks page.</p>
+
+  <p>
+    You can also see your <a href="/bookmarks/archive">bookmarks archive</a>.
+  </p>
+
+  <h2>Bookmarks in rotation</h2>
+
+  {bookmarksInRotation.length === 0 && <p>No bookmarks in rotation.</p>}
+
+  {
+    bookmarksInRotation.length > 0 && (
+      <BookmarksListGrid
+        bookmarks={bookmarksInRotation}
+        actions={[
+          { value: "mark_as_done", label: "Mark as done" },
+          { value: "archive", label: "Archive" },
+          { value: "snooze", label: "Snooze" },
+        ]}
+      />
+    )
+  }
+
+  <h2>Bookmarks to check out</h2>
+
+  {bookmarksToCheckOut.length === 0 && <p>No bookmarks to check out.</p>}
+
+  {
+    bookmarksToCheckOut.length > 0 && (
+      <BookmarksListGrid
+        bookmarks={bookmarksToCheckOut}
+        actions={[
+          { value: "mark_as_checking_out", label: "Mark as in rotation" },
+          { value: "archive", label: "Archive" },
+          { value: "snooze", label: "Snooze" },
+        ]}
+      />
+    )
+  }
+
+  <p><a href="/bookmarks/new">Add a new bookmark</a></p>
+
+  <Debug {bookmarksToCheckOut} />
+</Layout>

@@ -1,0 +1,95 @@
+---
+import { lucia } from "@src/auth";
+import { validateUsername, validatePassword } from "@src/utils/auth";
+import { generateId } from "lucia";
+import { Argon2id } from "oslo/password";
+import { db, User, eq, or } from "astro:db";
+
+import Layout from "@src/components/Layout.astro";
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+
+  const username = formData.get("username");
+
+  const usernameIsValid = validateUsername(username);
+  if (!usernameIsValid) {
+    return new Response("Invalid username", {
+      status: 400,
+    });
+  }
+  const password = formData.get("password");
+  const confirmPassword = formData.get("confirm-password");
+
+  const passwordIsValid = validatePassword(password);
+
+  if (password !== confirmPassword) {
+    return new Response("Passwords do not match", {
+      status: 400,
+    });
+  }
+
+  if (!passwordIsValid) {
+    return new Response("Invalid password", {
+      status: 400,
+    });
+  }
+
+  const userId = generateId(15);
+  const hashedPassword = await new Argon2id().hash(password);
+
+  const email = formData.get("email");
+
+  if (!email) {
+    return new Response("Email is required", {
+      status: 400,
+    });
+  }
+
+  const existingUsers = await db
+    .select()
+    .from(User)
+    .where(or(eq(User.username, username), eq(User.email, email)));
+
+  if (existingUsers.length > 0) {
+    return new Response(
+      "Username already taken, or user with email already exists",
+      {
+        status: 400,
+      },
+    );
+  }
+
+  await db.insert(User).values({
+    id: userId,
+    username,
+    email,
+    hashedPassword,
+  });
+
+  const session = await lucia.createSession(userId, {});
+  const sessionCookie = lucia.createSessionCookie(session.id);
+  Astro.cookies.set(
+    sessionCookie.name,
+    sessionCookie.value,
+    sessionCookie.attributes,
+  );
+
+  return Astro.redirect("/");
+}
+---
+
+<Layout>
+  <h1>Sign up</h1>
+  <form method="post">
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" />
+    <label for="username">Username</label>
+    <input id="username" name="username" />
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" />
+    <label for="password">Confirm password</label>
+    <input id="confirm-password" name="confirm-password" type="password" />
+    <button>Continue</button>
+  </form>
+</Layout>

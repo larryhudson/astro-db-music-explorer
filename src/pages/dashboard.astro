@@ -1,0 +1,158 @@
+---
+import Layout from "@src/components/Layout.astro";
+import { Debug } from "astro:components";
+import {
+  db,
+  FriendRequest,
+  User,
+  Bookmark,
+  eq,
+  not,
+  and,
+  or,
+  isNull,
+  isNotNull,
+  inArray,
+  desc,
+} from "astro:db";
+
+import { alias } from "drizzle-orm/sqlite-core";
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+const friendRequests = await db
+  .select()
+  .from(FriendRequest)
+  .innerJoin(User, eq(FriendRequest.fromUserId, User.id))
+  .where(
+    and(
+      eq(FriendRequest.toUserId, currentUser.id),
+      isNull(FriendRequest.acceptedAt),
+      isNull(FriendRequest.declinedAt),
+    ),
+  );
+
+const friends = await db
+  .select()
+  .from(User)
+  .innerJoin(
+    FriendRequest,
+    and(
+      or(
+        eq(FriendRequest.toUserId, User.id),
+        eq(FriendRequest.fromUserId, User.id),
+      ),
+      isNotNull(FriendRequest.acceptedAt),
+      or(
+        eq(FriendRequest.toUserId, currentUser.id),
+        eq(FriendRequest.fromUserId, currentUser.id),
+      ),
+    ),
+  )
+  .where(not(eq(User.id, currentUser.id)));
+
+console.log({ friends });
+const friendIds = friends.map((f) => f.User.id);
+
+const OriginalBookmark = alias(Bookmark, "OriginalBookmark");
+const OriginalBookmarker = alias(User, "OriginalBookmarker");
+
+const feedItems = await db
+  .select()
+  .from(Bookmark)
+  .innerJoin(User, eq(Bookmark.userId, User.id))
+  .leftJoin(
+    OriginalBookmark,
+    eq(Bookmark.originalBookmarkId, OriginalBookmark.id),
+  )
+  .leftJoin(
+    OriginalBookmarker,
+    eq(OriginalBookmark.userId, OriginalBookmarker.id),
+  )
+  .where(
+    or(
+      eq(Bookmark.userId, currentUser.id),
+      inArray(Bookmark.userId, friendIds),
+    ),
+  )
+  .orderBy(desc(Bookmark.createdAt));
+const spotifyToken = await Astro.locals.getSpotifyToken();
+
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleString();
+}
+
+function isMine(bookmark) {
+  return bookmark.userId === currentUser.id;
+}
+---
+
+<Layout title="Dashboard">
+  <p>This is going to be the homepage for logged in users.</p>
+
+  <p>It will have:</p>
+  <ul>
+    <li>a feed of bookmarks from friends?</li>
+  </ul>
+
+  <p><a href="/bookmarks/">Bookmarks</a></p>
+
+  <h2>Login with Spotify</h2>
+
+  {spotifyToken && <p>You are logged in with Spotify.</p>}
+
+  {
+    !spotifyToken && (
+      <p>
+        <a href="/auth/spotify/">Login with Spotify</a>
+      </p>
+    )
+  }
+
+  <h2>Feed</h2>
+
+  <ul>
+    {
+      feedItems.map((feedItem) => (
+        <li>
+          <a href={feedItem.Bookmark.url}>{feedItem.Bookmark.note}</a>
+          <br />
+          {!isMine(feedItem.Bookmark) && (
+            <form action="/bookmarks/new">
+              <input
+                type="hidden"
+                name="original-bookmark-id"
+                value={feedItem.Bookmark.id}
+              />
+              <button>Rebookmark</button>
+            </form>
+          )}
+          <span>{formatDate(feedItem.Bookmark.createdAt)}</span>
+          User: {feedItem.User.username}
+          {feedItem.OriginalBookmark && (
+            <span>
+              (originally bookmarked by{" "}
+              <a href={`/user/${feedItem.OriginalBookmarker.username}`}>
+                {feedItem.OriginalBookmarker.username}
+              </a>
+              )
+            </span>
+          )}
+        </li>
+      ))
+    }
+  </ul>
+
+  <Debug {feedItems} />
+
+  <p>This is where your bookmarks and your friends' bookmarks will show up.</p>
+
+  <h2>Friends</h2>
+  <Debug {friendRequests} />
+
+  <Debug {friends} />
+</Layout>

@@ -1,0 +1,25 @@
+{
+  "name": "astro-db-music-explorer",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.5.10",
+    "@astrojs/db": "^0.9.8",
+    "@astrojs/node": "^8.2.5",
+    "astro": "^4.5.12",
+    "date-fns": "^3.6.0",
+    "lucia": "^3.1.1",
+    "lucia-adapter-astrodb": "^0.0.7",
+    "oslo": "^1.2.0",
+    "prettier": "^3.2.5",
+    "prettier-plugin-astro": "^0.13.0",
+    "typescript": "^5.4.3"
+  }
+}

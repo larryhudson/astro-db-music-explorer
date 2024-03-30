@@ -1,0 +1,64 @@
+---
+import { db, SpotifyToken } from "astro:db";
+// get access token from the url
+const searchParams = Astro.url.searchParams;
+const hasAuthCode = searchParams.has("code");
+
+console.log({ searchParamsString: searchParams.toString() });
+
+if (hasAuthCode) {
+  const authCode = searchParams.get("code");
+
+  const spotifyTokenResponse = await fetch(
+    "https://accounts.spotify.com/api/token",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${btoa(
+          `${import.meta.env.SPOTIFY_CLIENT_ID}:${import.meta.env.SPOTIFY_CLIENT_SECRET}`,
+        )}`,
+      },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code: authCode,
+        redirect_uri: import.meta.env.SPOTIFY_REDIRECT_URI,
+      }),
+    },
+  );
+
+  const spotifyToken = await spotifyTokenResponse.json();
+
+  if (spotifyToken.error) {
+    console.error(spotifyToken.error);
+    return Astro.redirect("/");
+  }
+
+  await db.insert(SpotifyToken).values({
+    accessToken: spotifyToken.access_token,
+    refreshToken: spotifyToken.refresh_token,
+    expiresAt: new Date(Date.now() + spotifyToken.expires_in * 1000),
+    userId: Astro.locals.user.id,
+  });
+
+  return Astro.redirect("/");
+}
+---
+
+<script is:inline>
+  console.log("got here!");
+  window.addEventListener("load", function () {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+    console.log(hashParams);
+
+    const newUrl = new URL(window.location.href);
+    for (const [key, value] of hashParams) {
+      newUrl.searchParams.append(key, value);
+    }
+
+    console.log(newUrl.toString());
+
+    window.location.href = newUrl.toString();
+  });
+</script>

@@ -1,0 +1,52 @@
+---
+import Layout from "@src/components/Layout.astro";
+import { Debug } from "astro:components";
+import { db, User, FriendRequest, eq, or, and } from "astro:db";
+
+const { username } = Astro.params;
+
+const [user] = await db
+  .select()
+  .from(User)
+  .where(eq(User.username, username))
+  .limit(1);
+
+if (!user) {
+  return new Response("User not found", { status: 404 });
+}
+
+const currentUser = Astro.locals.user;
+
+const [friendRequest] = await db
+  .select()
+  .from(FriendRequest)
+  .where(
+    or(
+      and(
+    eq(FriendRequest.fromUserId, currentUser.id),
+    eq(FriendRequest.toUserId, user.id)
+      ),
+      and(
+    eq(FriendRequest.toUserId, currentUser.id),
+    eq(FriendRequest.fromUserId, user.id)
+      )
+  )
+  )
+  .limit(1);
+
+const isFriend = friendRequest && friendRequest.acceptedAt;
+
+const isCurrentUser = currentUser && currentUser.id === user.id;
+---
+
+<Layout title={`User: ${user.username}`}>
+  <p>This is the user page for {user.username}</p>
+
+{isCurrentUser && <p>That's you!</p>}
+
+  <Debug {user} />
+
+<h2>Friend status</h2>
+  {isFriend && (<p>You are friends!</p>)}
+  <Debug {friendRequest} />
+</Layout>

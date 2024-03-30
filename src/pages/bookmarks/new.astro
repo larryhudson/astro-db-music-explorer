@@ -1,0 +1,67 @@
+---
+import Layout from "@src/components/Layout.astro";
+import { db, Bookmark, eq } from "astro:db";
+
+const currentUser = Astro.locals.user;
+if (!currentUser) {
+  return Astro.redirect("/auth/login");
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const url = formData.get("url") as string;
+  const note = formData.get("note") as string;
+  const originalBookmarkId = formData.get("original-bookmark-id") || undefined;
+
+  if (!url || typeof url !== "string") {
+    return new Response("Invalid URL", { status: 400 });
+  }
+
+  await db.insert(Bookmark).values({
+    url,
+    note,
+    userId: currentUser.id,
+    originalBookmarkId,
+  });
+
+  return Astro.redirect("/bookmarks/");
+}
+
+const originalBookmarkId = Astro.url.searchParams.get("original-bookmark-id");
+
+let url = "";
+let note = "";
+
+if (originalBookmarkId) {
+  const [originalBookmark] = await db
+    .select()
+    .from(Bookmark)
+    .where(eq(Bookmark.id, originalBookmarkId))
+    .limit(1);
+
+  if (originalBookmark) {
+    url = originalBookmark.url;
+    note = originalBookmark.note;
+  }
+}
+---
+
+<Layout title="Add a new bookmark">
+  <p>Form for adding a new bookmark</p>
+  <form method="POST">
+    {
+      originalBookmarkId && (
+        <input
+          type="hidden"
+          name="original-bookmark-id"
+          value={originalBookmarkId}
+        />
+      )
+    }
+    <label for="url-input">URL</label>
+    <input type="url" name="url" required value={url} />
+    <label for="note-input">Note (optional)</label>
+    <input type="text" name="note" id="note-input" required value={note} />
+    <button>Add</button>
+  </form>
+</Layout>
