@@ -50,7 +50,7 @@ const nextBookmark = userBookmarks[currentBookmarkIndex + 1] || null;
 
   <iframe src={bookmark.url} width="100%" height="500px" />
 
-  <h2>Add a new bookmark from this bookmark</h2>
+  <p>TODO: add options here for archiving, marking as in rotation, or snoozing. Adding notes / adding what you think about the music?</p>
 
   <NextPrev
     prev={prevBookmark && {url: `/bookmarks/${prevBookmark.id}`, label: `Previous bookmark: ${prevBookmark.note}`}}
