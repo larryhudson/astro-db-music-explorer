@@ -28,6 +28,12 @@ if (Astro.request.method === "POST") {
       })
       .where(eq(Bookmark.id, id));
     statusMessage = "Bookmark archived.";
+  } else if (formAction === "delete") {
+    const id = formData.get("id");
+    await db
+      .delete(Bookmark)
+      .where(and(eq(Bookmark.id, id), eq(Bookmark.userId, currentUser.id)));
+    statusMessage = "Bookmark deleted.";
   } else if (formAction === "mark_as_checking_out") {
     const id = formData.get("id");
     await db
@@ -87,6 +93,11 @@ const bookmarksToCheckOut = await db
         getItemUrl={(bookmark: any) => `/bookmarks/${bookmark.id}/`}
         actions={[
           { value: "mark_as_done", label: "Mark as done" },
+          {
+            value: "delete",
+            label: "Delete",
+            confirm: "Are you sure you want to delete this bookmark?",
+          },
           { value: "archive", label: "Archive" },
           { value: "snooze", label: "Snooze" },
         ]}
@@ -105,6 +116,11 @@ const bookmarksToCheckOut = await db
         getItemUrl={(bookmark: any) => `/bookmarks/${bookmark.id}/`}
         actions={[
           { value: "mark_as_checking_out", label: "Mark as in rotation" },
+          {
+            value: "delete",
+            label: "Delete",
+            confirm: "Are you sure you want to delete this bookmark?",
+          },
           { value: "archive", label: "Archive" },
           { value: "snooze", label: "Snooze" },
         ]}

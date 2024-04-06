@@ -4,10 +4,18 @@ import { Argon2id } from "oslo/password";
 import { validateUsername, validatePassword } from "@src/utils/auth";
 import "dotenv/config";
 
+function getEnvVar(name: string): string {
+	const value = import.meta?.env?.[name] || process.env[name];
+	if (!value) {
+		throw new Error(`Missing environment variable ${name}`);
+	}
+	return value;
+}
+
 async function createAdminUser() {
-	const ADMIN_USERNAME = import.meta?.env?.ADMIN_USERNAME || process.env.ADMIN_USERNAME;
-	const ADMIN_PASSWORD = import.meta?.env?.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD
-	const ADMIN_EMAIL = import.meta?.env?.ADMIN_EMAIL || process.env.ADMIN_EMAIL;
+	const ADMIN_USERNAME = getEnvVar("ADMIN_USERNAME");
+	const ADMIN_PASSWORD = getEnvVar("ADMIN_PASSWORD");
+	const ADMIN_EMAIL = getEnvVar("ADMIN_EMAIL");
 
 	console.log("got here - creating admin user");
 
@@ -163,14 +171,15 @@ async function createAdminSources(adminUserId: string) {
 	await db.batch(insertQueries);
 }
 
-
-
-
-
 // https://astro.build/db/seed
 export default async function seed() {
 	const adminUserId = await createAdminUser();
-	const friendUserId = await createExampleFriend({ username: "friend", password: "password", email: "friend@gmail.com" })
+
+	const FRIEND_USERNAME = getEnvVar("FRIEND_USERNAME");
+	const FRIEND_PASSWORD = getEnvVar("FRIEND_PASSWORD");
+	const FRIEND_EMAIL = getEnvVar("FRIEND_EMAIL");
+
+	const friendUserId = await createExampleFriend({ username: FRIEND_USERNAME, password: FRIEND_PASSWORD, email: FRIEND_EMAIL })
 	await createExampleFriendRequest({ fromUserId: adminUserId, toUserId: friendUserId, isAccepted: true });
 
 	const friendRequesterUserId = await createExampleFriend({ username: "friendrequester", password: "password", email: "friendrequester@gmail.com" })

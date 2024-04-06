@@ -2,15 +2,7 @@
 import Layout from "@src/components/Layout.astro";
 import ListGrid from "@src/components/ListGrid.astro";
 
-import {
-  db,
-  Bookmark,
-  BookmarkSnooze,
-  User,
-  eq,
-  and,
-  isNotNull,
-} from "astro:db";
+import { db, Bookmark, BookmarkSnooze, User, eq, and } from "astro:db";
 import { Debug } from "astro:components";
 
 const currentUser = Astro.locals.user;
@@ -33,10 +25,12 @@ if (Astro.request.method === "POST") {
   }
 }
 
-const allBookmarks = await db
+const archivedBookmarks = await db
   .select()
   .from(Bookmark)
-  .where(and(eq(Bookmark.userId, currentUser.id)));
+  .where(
+    and(eq(Bookmark.userId, currentUser.id), eq(Bookmark.status, "archived")),
+  );
 
 const bookmarkSnoozes = await db
   .select()
@@ -49,20 +43,23 @@ const bookmarkSnoozes = await db
 <Layout title="Bookmarks">
   <p>This is going to be the bookmarks archive.</p>
 
-  {allBookmarks.length === 0 && <p>You haven't archived any bookmarks yet.</p>}
+  {
+    archivedBookmarks.length === 0 && (
+      <p>You haven't archived any bookmarks yet.</p>
+    )
+  }
 
   {
-    allBookmarks.length > 0 && (
+    archivedBookmarks.length > 0 && (
       <ListGrid
-        items={allBookmarks}
+        items={archivedBookmarks}
+        getItemUrl={(bookmark) => `/bookmarks/${bookmark.id}/`}
         actions={[{ label: "Unarchive", value: "unarchive" }]}
       />
     )
   }
 
   <p><a href="/bookmarks/">Back to your bookmarks</a></p>
-
-  <Debug {allBookmarks} />
 
   <h2>Bookmark snoozes</h2>
 
