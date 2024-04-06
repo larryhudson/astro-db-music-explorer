@@ -12,6 +12,7 @@ if (Astro.request.method === "POST") {
   const url = formData.get("url") as string;
   const note = formData.get("note") as string;
   const originalBookmarkId = formData.get("original-bookmark-id") || undefined;
+  const sourceId = formData.get("source-id") || undefined;
 
   if (!url || typeof url !== "string") {
     return new Response("Invalid URL", { status: 400 });
@@ -22,9 +23,17 @@ if (Astro.request.method === "POST") {
     note,
     userId: currentUser.id,
     originalBookmarkId,
+    sourceId,
   });
 
-  return Astro.redirect("/bookmarks/");
+  const returnToUrl = new URL(
+    formData.get("return-to-url") || "/bookmarks/",
+    Astro.url.origin,
+  );
+
+  returnToUrl.searchParams.set("message", "Created bookmark");
+
+  return Astro.redirect(returnToUrl);
 }
 
 const originalBookmarkId = Astro.url.searchParams.get("original-bookmark-id");

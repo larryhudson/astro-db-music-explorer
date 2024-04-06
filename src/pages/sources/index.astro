@@ -1,0 +1,66 @@
+---
+import Layout from "@src/components/Layout.astro";
+import ListGrid from "@src/components/ListGrid.astro";
+
+import { db, Source, eq, and } from "astro:db";
+import { Debug } from "astro:components";
+
+let statusMessage;
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const formAction = formData.get("form-action");
+
+  if (formAction === "delete") {
+    const id = formData.get("id");
+    await db
+      .delete(Source)
+      .where(and(eq(Source.id, id), eq(Source.userId, currentUser.id)));
+    statusMessage = "Source deleted.";
+  }
+}
+
+const userSources = await db
+  .select()
+  .from(Source)
+  .where(eq(Source.userId, currentUser.id));
+---
+
+<Layout title="Sources">
+  {statusMessage && <p>{statusMessage}</p>}
+  <p>This is going to be the sources page.</p>
+
+  <h2>Your sources</h2>
+
+  <p>
+    You can <a href="/sources/flick-through/">flick through your sources</a>.
+  </p>
+
+  {userSources.length === 0 && <p>You haven't added a source yet.</p>}
+
+  {
+    userSources.length > 0 && (
+      <ListGrid
+        items={userSources}
+        getItemUrl={(source: any) => `/sources/${source.id}/`}
+        actions={[
+          {
+            value: "delete",
+            label: "Delete",
+            confirm: "Are you sure you want to delete this source?",
+          },
+        ]}
+      />
+    )
+  }
+
+  <p><a href="/sources/new">Add a new source</a></p>
+
+  <Debug {userSources} />
+</Layout>

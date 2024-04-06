@@ -1,0 +1,59 @@
+---
+const { items, getItemUrl, actions } = Astro.props;
+---
+
+<ul>
+  {
+    items.map((item: any) => (
+      <li>
+        <a href={getItemUrl(item)}>{item.name || item.url}</a>
+        <p>
+          <a href={item.url}>External link</a>
+        </p>
+        <p>{item.note}</p>
+        <form method="POST">
+          <input type="hidden" name="id" value={item.id} />
+          {actions.map((action: any) => (
+            <button
+              name="form-action"
+              value={action.value}
+              data-confirm-message={action.confirm || undefined}
+            >
+              {action.label}
+            </button>
+          ))}
+        </form>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+    list-style: none;
+    padding-left: 0;
+  }
+
+  ul > li {
+    flex: 1 1 12rem;
+    border: 1px solid black;
+    padding: var(--space-s);
+  }
+</style>
+
+<script>
+  const buttonsWithConfirm = document.querySelectorAll(
+    "button[data-confirm-message]",
+  );
+
+  buttonsWithConfirm.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      if (!confirm(button.dataset.confirmMessage)) {
+        event.preventDefault();
+      }
+    });
+  });
+</script>

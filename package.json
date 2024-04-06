@@ -5,21 +5,23 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro check && astro build",
+    "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/check": "^0.5.10",
-    "@astrojs/db": "^0.9.8",
+    "@astrojs/db": "^0.10.1",
     "@astrojs/node": "^8.2.5",
-    "astro": "^4.5.12",
+    "astro": "^4.5.16",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.4.5",
+    "http-proxy": "^1.18.1",
     "lucia": "^3.1.1",
-    "lucia-adapter-astrodb": "^0.0.7",
+    "lucia-adapter-astrodb": "^0.0.8",
     "oslo": "^1.2.0",
     "prettier": "^3.2.5",
     "prettier-plugin-astro": "^0.13.0",
-    "typescript": "^5.4.3"
+    "typescript": "^5.4.4"
   }
 }

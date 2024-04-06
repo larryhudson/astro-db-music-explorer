@@ -103,7 +103,14 @@ function isMine(bookmark) {
 
   <h2>Login with Spotify</h2>
 
-  {spotifyToken && <p>You are logged in with Spotify.</p>}
+  {
+    spotifyToken && (
+      <div>
+        <p>You are logged in with Spotify. Spotify token: {spotifyToken}</p>
+        <Debug {spotifyToken} />
+      </div>
+    )
+  }
 
   {
     !spotifyToken && (

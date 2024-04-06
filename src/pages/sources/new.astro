@@ -1,0 +1,48 @@
+---
+import Layout from "@src/components/Layout.astro";
+import { db, Source, eq } from "astro:db";
+
+const currentUser = Astro.locals.user;
+if (!currentUser) {
+  return Astro.redirect("/auth/login");
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const url = formData.get("url") as string;
+  const name = formData.get("name") as string;
+  const note = formData.get("note") as string;
+
+  if (!url || typeof url !== "string") {
+    return new Response("Invalid URL", { status: 400 });
+  }
+
+  await db.insert(Source).values({
+    url,
+    note,
+    name,
+    userId: currentUser.id,
+  });
+
+  return Astro.redirect("/sources/");
+}
+---
+
+<Layout title="Add a new source">
+  <p>Form for adding a new source</p>
+  <form method="POST">
+    <div>
+      <label for="url-input">URL</label>
+      <input type="url" name="url" id="url-input" required />
+    </div>
+    <div>
+      <label for="name-input">Name (optional)</label>
+      <input type="text" name="name" id="name-input" />
+    </div>
+    <div>
+      <label for="note-input">Note (optional)</label>
+      <input type="text" name="note" id="note-input" />
+    </div>
+    <button>Add</button>
+  </form>
+</Layout>

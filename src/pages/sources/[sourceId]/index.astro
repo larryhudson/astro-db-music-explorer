@@ -1,0 +1,91 @@
+---
+import Layout from "@src/components/Layout.astro";
+import ListGrid from "@src/components/ListGrid.astro";
+import NextPrev from "@src/components/NextPrev.astro";
+
+import { db, Bookmark, Source, eq, gt, lt, and, isNull, NOW } from "astro:db";
+import { Debug } from "astro:components";
+
+let statusMessage;
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+const sourceIdStr = Astro.params.sourceId;
+const sourceId = parseInt(sourceIdStr, 10);
+
+// Get all the source data for the current user in order
+const userSources = await db
+  .select()
+  .from(Source)
+  .where(eq(Source.userId, currentUser.id))
+  .orderBy(Source.id);
+
+// Find the index of the current source
+const currentSourceIndex = userSources.findIndex(s => s.id === sourceId);
+const currentSourceNum = currentSourceIndex + 1;
+const source = userSources[currentSourceIndex];
+
+if (!source) {
+    return new Response("Could not find source", {status: 404});
+}
+
+const totalSources = userSources.length;
+
+const prevSource = userSources[currentSourceIndex - 1] || null;
+const nextSource = userSources[currentSourceIndex + 1] || null;
+---
+
+<Layout title={`Source: ${source.name}`}>
+  {statusMessage && <p>{statusMessage}</p>}
+
+  <NextPrev
+    prev={prevSource && {url: `/sources/${prevSource.id}`, label: `Previous source: ${prevSource.name}`}}
+    next={nextSource && {url: `/sources/${nextSource.id}`, label: `Next source: ${nextSource.name}`}}
+    current={`Source ${currentSourceNum} of ${totalSources}`}
+  />
+
+  <iframe src={source.url} width="100%" height="500px" />
+
+  <h2>Add a new bookmark from this source</h2>
+  <form method="POST" action="/bookmarks/new">
+    <input type="hidden" name="source-id" value={source.id} />
+    <label for="url-input">URL</label>
+    <input type="text" name="url" id="url-input" required="" />
+
+    <label for="note-input">Note</label>
+    <input type="text" name="note" id="note-input" />
+
+    <input type="hidden" name="return-to-url" value={Astro.url.pathname} />
+
+    <button>Add bookmark</button>
+      
+    </form>
+
+  <NextPrev
+    prev={prevSource && {url: `/sources/${prevSource.id}`, label: `Previous source: ${prevSource.name}`}}
+    next={nextSource && {url: `/sources/${nextSource.id}`, label: `Next source: ${nextSource.name}`}}
+    current={`Source ${currentSourceNum} of ${totalSources}`}
+  />
+
+<Debug {source} />
+
+</Layout>
+
+<style>
+  .next-prev {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .next-prev a {
+    display: block;
+    padding: 1rem;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    text-decoration: none;
+      }
+</style>

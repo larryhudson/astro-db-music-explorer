@@ -1,0 +1,21 @@
+---
+import { db, Bookmark, Source, eq, gt, lt, and, isNull, NOW } from "astro:db";
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+const [source] = await db
+  .select()
+  .from(Source)
+  .where(eq(Source.userId, currentUser.id))
+  .limit(1);
+
+if (!source) {
+  return Astro.redirect("/sources/");
+}
+
+return Astro.redirect(`/sources/${source.id}/`);
+---

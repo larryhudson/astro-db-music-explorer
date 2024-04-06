@@ -1,0 +1,56 @@
+---
+const navItems = [
+  {
+    url: "/dashboard/",
+    title: "Dashboard",
+  },
+  {
+    url: "/bookmarks/",
+    title: "Bookmarks",
+  },
+  {
+    url: "/sources/",
+    title: "Sources",
+  },
+];
+
+const currentUrl = Astro.url.pathname;
+console.log({ currentUrl });
+---
+
+<nav>
+  <ul>
+    {
+      navItems.map((item) => (
+        <li>
+          <a
+            href={item.url}
+            aria-current={currentUrl.startsWith(item.url) ? "page" : undefined}
+          >
+            {item.title}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<style>
+  nav ul {
+    list-style: none;
+    padding-left: 0;
+
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  nav ul a {
+    padding: 0.5rem 1rem;
+    border: 1px solid black;
+    text-decoration: none;
+  }
+
+  nav ul a[aria-current] {
+    background-color: yellow;
+  }
+</style>

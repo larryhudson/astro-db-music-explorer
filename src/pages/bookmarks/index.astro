@@ -1,6 +1,6 @@
 ---
 import Layout from "@src/components/Layout.astro";
-import BookmarksListGrid from "@src/components/BookmarksListGrid.astro";
+import ListGrid from "@src/components/ListGrid.astro";
 
 import { db, Bookmark, eq, and, isNull, NOW } from "astro:db";
 import { Debug } from "astro:components";
@@ -82,8 +82,9 @@ const bookmarksToCheckOut = await db
 
   {
     bookmarksInRotation.length > 0 && (
-      <BookmarksListGrid
-        bookmarks={bookmarksInRotation}
+      <ListGrid
+        items={bookmarksInRotation}
+        getItemUrl={(bookmark: any) => `/bookmarks/${bookmark.id}/`}
         actions={[
           { value: "mark_as_done", label: "Mark as done" },
           { value: "archive", label: "Archive" },
@@ -99,8 +100,9 @@ const bookmarksToCheckOut = await db
 
   {
     bookmarksToCheckOut.length > 0 && (
-      <BookmarksListGrid
-        bookmarks={bookmarksToCheckOut}
+      <ListGrid
+        items={bookmarksToCheckOut}
+        getItemUrl={(bookmark: any) => `/bookmarks/${bookmark.id}/`}
         actions={[
           { value: "mark_as_checking_out", label: "Mark as in rotation" },
           { value: "archive", label: "Archive" },

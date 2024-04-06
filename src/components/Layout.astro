@@ -1,5 +1,6 @@
 ---
 import LoginLogout from "@src/components/LoginLogout.astro";
+import Navigation from "@src/components/Navigation.astro";
 import "@src/styles/global.css";
 
 const title = Astro.props.title || "Astro";
@@ -16,6 +17,7 @@ const title = Astro.props.title || "Astro";
   <body>
     <header>
       <LoginLogout />
+      <Navigation />
     </header>
     <main>
       <h1>{title}</h1>

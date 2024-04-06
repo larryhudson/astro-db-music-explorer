@@ -1,0 +1,78 @@
+---
+import Layout from "@src/components/Layout.astro";
+import ListGrid from "@src/components/ListGrid.astro";
+import NextPrev from "@src/components/NextPrev.astro";
+
+import { db, Bookmark, bookmark, eq, gt, lt, and, isNull, NOW } from "astro:db";
+import { Debug } from "astro:components";
+
+let statusMessage;
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+const bookmarkIdStr = Astro.params.bookmarkId;
+const bookmarkId = parseInt(bookmarkIdStr, 10);
+
+// Get all the bookmark data for the current user in order
+const userBookmarks = await db
+  .select()
+  .from(Bookmark)
+  .where(eq(Bookmark.userId, currentUser.id))
+  .orderBy(Bookmark.id);
+
+// Find the index of the current bookmark
+const currentBookmarkIndex = userBookmarks.findIndex(b => b.id === bookmarkId);
+const currentBookmarkNum = currentBookmarkIndex + 1;
+const bookmark = userBookmarks[currentBookmarkIndex];
+
+if (!bookmark) {
+    return new Response("Could not find bookmark", {status: 404});
+}
+
+const totalBookmarks = userBookmarks.length;
+
+const prevBookmark = userBookmarks[currentBookmarkIndex - 1] || null;
+const nextBookmark = userBookmarks[currentBookmarkIndex + 1] || null;
+---
+
+<Layout title={`bookmark: ${bookmark.note}`}>
+  {statusMessage && <p>{statusMessage}</p>}
+
+  <NextPrev
+    prev={prevBookmark && {url: `/bookmarks/${prevBookmark.id}`, label: `Previous bookmark: ${prevBookmark.note}`}}
+    next={nextBookmark && {url: `/bookmarks/${nextBookmark.id}`, label: `Next bookmark: ${nextBookmark.note}`}}
+    current={`bookmark ${currentBookmarkNum} of ${totalBookmarks}`}
+  />
+
+  <iframe src={bookmark.url} width="100%" height="500px" />
+
+  <h2>Add a new bookmark from this bookmark</h2>
+
+  <NextPrev
+    prev={prevBookmark && {url: `/bookmarks/${prevBookmark.id}`, label: `Previous bookmark: ${prevBookmark.note}`}}
+    next={nextBookmark && {url: `/bookmarks/${nextBookmark.id}`, label: `Next bookmark: ${nextBookmark.note}`}}
+    current={`bookmark ${currentBookmarkNum} of ${totalBookmarks}`}
+  />
+
+<Debug {bookmark} />
+
+</Layout>
+
+<style>
+  .next-prev {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .next-prev a {
+    display: block;
+    padding: 1rem;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    text-decoration: none;
+      }
+</style>

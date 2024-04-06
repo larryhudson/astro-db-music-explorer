@@ -1,12 +1,13 @@
-import { db, User, Bookmark, FriendRequest, Friendship } from 'astro:db';
+import { db, User, Bookmark, FriendRequest, Friendship, Source } from 'astro:db';
 import { generateId } from "lucia";
 import { Argon2id } from "oslo/password";
 import { validateUsername, validatePassword } from "@src/utils/auth";
+import "dotenv/config";
 
 async function createAdminUser() {
-	const ADMIN_USERNAME = import.meta.env.ADMIN_USERNAME;
-	const ADMIN_PASSWORD = import.meta.env.ADMIN_PASSWORD;
-	const ADMIN_EMAIL = import.meta.env.ADMIN_EMAIL;
+	const ADMIN_USERNAME = import.meta?.env?.ADMIN_USERNAME || process.env.ADMIN_USERNAME;
+	const ADMIN_PASSWORD = import.meta?.env?.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD
+	const ADMIN_EMAIL = import.meta?.env?.ADMIN_EMAIL || process.env.ADMIN_EMAIL;
 
 	console.log("got here - creating admin user");
 
@@ -117,7 +118,7 @@ async function createExampleBookmarks(adminUserId: string, friendUserId: string)
 		})
 	));
 
-	const friendInsertQueries = adminBookmarks.map(bookmark => (
+	const friendInsertQueries = friendBookmarks.map(bookmark => (
 		db.insert(Bookmark).values({
 			userId: friendUserId,
 			url: bookmark.url,
@@ -128,6 +129,41 @@ async function createExampleBookmarks(adminUserId: string, friendUserId: string)
 	await db.batch(adminInsertQueries);
 	await db.batch(friendInsertQueries);
 }
+
+async function createAdminSources(adminUserId: string) {
+
+	const sources = [{
+		name: "Paste Magazine",
+		url: "https://www.pastemagazine.com/article-category/music",
+		note: "Seem to have good curation for alternative music"
+	},
+	{ name: "Treble Zine", url: "https://www.treblezine.com/", note: "Good reviews of new music" },
+	{ name: "NPR Music", url: "https://www.npr.org/music/", note: "Good for discovering new music" },
+	{ name: "Post-Trash", url: "http://post-trash.com/", note: "More punky stuff" },
+	{ name: "Pitchfork", url: "https://pitchfork.com/", note: "Indie reviews" },
+	{ name: "RA Mix of the Day", url: "https://ra.co/mix-of-the-day", note: "Electronic mixes" },
+	{ name: "Mixmag Music", url: "https://mixmag.net/music", note: "Electronic music news" },
+	{ name: "RA Reviews", url: "https://ra.co/music", note: "Electronic music reviews" },
+	{ name: "PopMatters", url: "https://www.popmatters.com/category/music", note: "Music reviews" },
+	{ name: "KEXP YouTube channel", url: "https://www.youtube.com/@kexp/videos", note: "Live performances" },
+	{ name: "Audiotree YouTube channel", url: "https://www.youtube.com/@audiotree/videos", note: "Like KEXP but punkier" },
+	{ name: "KCRW website", url: "https://www.kcrw.com/music", note: "Cool radio station" },
+	{ name: "Sputnikmusic", url: "https://www.sputnikmusic.com/reviews/staff/albums", note: "Nerdy music community" },
+	{ name: "Bandcamp Daily", url: "https://daily.bandcamp.com/", note: "Nice curation of indie music of different genres" },
+	{ name: "Reddit r/indieheads", url: "https://www.reddit.com/r/indieheads/", note: "Good for new music" },
+	];
+
+	const insertQueries = sources.map(source => (
+		db.insert(Source).values({
+			userId: adminUserId,
+			...source
+		})
+	))
+
+	await db.batch(insertQueries);
+}
+
+
 
 
 
@@ -141,4 +177,6 @@ export default async function seed() {
 	await createExampleFriendRequest({ fromUserId: friendRequesterUserId, toUserId: adminUserId, isAccepted: false });
 
 	await createExampleBookmarks(adminUserId, friendUserId);
+
+	await createAdminSources(adminUserId);
 }

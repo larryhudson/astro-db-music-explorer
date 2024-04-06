@@ -1,6 +1,6 @@
 ---
 import Layout from "@src/components/Layout.astro";
-import BookmarksListGrid from "@src/components/BookmarksListGrid.astro";
+import ListGrid from "@src/components/ListGrid.astro";
 
 import {
   db,
@@ -53,8 +53,8 @@ const bookmarkSnoozes = await db
 
   {
     allBookmarks.length > 0 && (
-      <BookmarksListGrid
-        bookmarks={allBookmarks}
+      <ListGrid
+        items={allBookmarks}
         actions={[{ label: "Unarchive", value: "unarchive" }]}
       />
     )

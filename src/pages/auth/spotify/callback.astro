@@ -31,7 +31,7 @@ if (hasAuthCode) {
 
   if (spotifyToken.error) {
     console.error(spotifyToken.error);
-    return Astro.redirect("/");
+    return Astro.redirect("/dashboard");
   }
 
   await db.insert(SpotifyToken).values({
@@ -41,7 +41,7 @@ if (hasAuthCode) {
     userId: Astro.locals.user.id,
   });
 
-  return Astro.redirect("/");
+  return Astro.redirect("/dashboard");
 }
 ---
 

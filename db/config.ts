@@ -51,7 +51,8 @@ const Bookmark = defineTable({
     status: column.text({ default: 'to_check_out', enum: ['to_check_out', 'checking_out', 'archived', 'snoozed'] }),
     statusChangedAt: column.date({ default: NOW }),
     statusChangedFrom: column.text({ optional: true }),
-    originalBookmarkId: column.number({ optional: true, references: () => Bookmark.columns.id })
+    originalBookmarkId: column.number({ optional: true, references: () => Bookmark.columns.id }),
+    sourceId: column.number({ optional: true, references: () => Source.columns.id })
   },
   indexes: {
     bookmarkUserId: {
@@ -169,6 +170,22 @@ const Friendship = defineTable({
   }
 })
 
+const Source = defineTable({
+  columns: {
+    id: column.number({ primaryKey: true, autoIncrement: true }),
+    userId: column.text({ references: () => User.columns.id }),
+    name: column.text(),
+    url: column.text(),
+    note: column.text({ optional: true }),
+    createdAt: column.date({ default: NOW }),
+  },
+  indexes: {
+    sourceCreatedAt: {
+      on: ['createdAt'],
+    },
+  }
+})
+
 // https://astro.build/db/config
 export default defineDb({
   tables: {
@@ -180,6 +197,7 @@ export default defineDb({
     QueueItem,
     FriendRequest,
     SpotifyToken,
-    Friendship
+    Friendship,
+    Source
   }
 });
