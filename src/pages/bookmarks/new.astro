@@ -68,9 +68,12 @@ if (originalBookmarkId) {
       )
     }
     <label for="url-input">URL</label>
-    <input type="url" name="url" required value={url} />
+    <input type="url" name="url" required value={url} autofocus />
     <label for="note-input">Note (optional)</label>
     <input type="text" name="note" id="note-input" required value={note} />
-    <button>Add</button>
+    <button>Save</button>
+    <button name="return-to-url" value="/bookmarks/new"
+      >Save and add another</button
+    >
   </form>
 </Layout>
