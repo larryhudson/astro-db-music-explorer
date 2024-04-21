@@ -69,7 +69,9 @@ if (Astro.request.method === "POST") {
       .delete(MusicItem)
       .where(and(eq(MusicItem.id, id), eq(MusicItem.userId, currentUser.id)));
     statusMessage = "Music item deleted.";
-    return Astro.redirect("/articles/");
+    const redirectUrl = returnUrl || new URL("/music-items/", Astro.url.origin);
+    redirectUrl.searchParams.set("message", statusMessage);
+    return Astro.redirect(redirectUrl);
   } else if (formAction === "edit") {
     const editUrl = new URL(`/music-items/${id}/edit`, Astro.url.origin);
     if (returnUrl) {
