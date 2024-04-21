@@ -110,8 +110,6 @@ const mostRecentSources = await db
   .where(eq(Source.userId, currentUser.id))
   .orderBy(desc(Source.createdAt))
   .limit(5);
-
-const spotifyToken = await Astro.locals.getSpotifyToken();
 ---
 
 <Layout title="🏠 Dashboard">
@@ -124,6 +122,14 @@ const spotifyToken = await Astro.locals.getSpotifyToken();
         {mostRecentArticles.map((article) => (
           <li>
             <a href={`/articles/${article.id}`}>{article.title}</a>
+            <a
+              href={article.url}
+              target="_blank"
+              class="button"
+              style="margin-left: 0.5rem; font-weight: normal"
+            >
+              Open ↗
+            </a>
           </li>
         ))}
       </ul>
@@ -132,104 +138,118 @@ const spotifyToken = await Astro.locals.getSpotifyToken();
   <div class="actions-group">
     <a href="/articles/" class="button">💬 See all articles</a>
     <a href="/articles/new" class="button">➕ Add a new article</a>
-    </div>
+  </div>
 
-    </p>
-
-    <h3>🎵 Music items</h3>
-    {mostRecentMusicItems.length === 0 && <p>No recent music items to show.</p>}
-    {
-      mostRecentMusicItems.length > 0 && (
-        <ul>
-          {mostRecentMusicItems.map((musicItem) => (
-            <li>
-              <a href={`/music-items/${musicItem.id}`}>{musicItem.title}</a>
-            </li>
-          ))}
-        </ul>
-      )
-    }
-    <p>
-
-  <div class="actions-group">
+  <h3>🎵 Music items</h3>
+  {mostRecentMusicItems.length === 0 && <p>No recent music items to show.</p>}
+  {
+    mostRecentMusicItems.length > 0 && (
+      <ul>
+        {mostRecentMusicItems.map((musicItem) => (
+          <li>
+            <a href={`/music-items/${musicItem.id}`}>{musicItem.title}</a>
+            <a
+              href={musicItem.url}
+              target="_blank"
+              class="button"
+              style="margin-left: 0.5rem; font-weight: normal"
+            >
+              Open ↗
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  <p>
+    <div class="actions-group">
       <a href="/music-items/" class="button">🎵 See all music items</a>
       <a href="/music-items/new" class="button">➕ Add a new music item</a>
     </div>
 
-      <h3>📖 Sources</h3>
-      {mostRecentSources.length === 0 && <p>No recent sources to show.</p>}
+    <h3>📖 Sources</h3>
+    {mostRecentSources.length === 0 && <p>No recent sources to show.</p>}
+
+    <ul>
+      {
+        mostRecentSources.map((source) => (
+          <li>
+            <a href={`/sources/${source.id}`}>{source.title}</a>
+            <a
+              href={source.url}
+              target="_blank"
+              class="button"
+              style="margin-left: 0.5rem; font-weight: normal"
+            >
+              Open ↗
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <div class="actions-group">
+      <a href="/sources/" class="button">📖 See all sources</a>
+      <a href="/sources/new" class="button">➕ Add a new source</a>
+    </div>
+    <p>
+      <h2>Feed</h2>
+
+      <p>
+        This section is a work in progress - once I build out the friendship +
+        friend request + sharing functionality, this will be a feed of your
+        friends' music discoveries / articles.
+      </p>
+
+      <TODO
+        >currently this only has music items. Maybe it should also have
+        articles?</TODO
+      >
 
       <ul>
         {
-          mostRecentSources.map((source) => (
+          feedItems.map((feedItem) => (
             <li>
-              <a href={`/sources/${source.id}`}>{source.title}</a>
+              <a href={feedItem.MusicItem.url}>{feedItem.MusicItem.title}</a>
+              <br />
+              {feedItem.MusicItem.note && (
+                <span>{feedItem.MusicItem.note}</span>
+              )}
+              {feedItem.MusicItem.userId !== currentUser.id && (
+                <form action="/music-items/new">
+                  <input
+                    type="hidden"
+                    name="original-music-item-id"
+                    value={feedItem.MusicItem.id}
+                  />
+                  <button>Save this music item</button>
+                </form>
+              )}
+              <span>{formatDate(feedItem.MusicItem.createdAt)}</span>
+              User: {feedItem.User.username}
+              {feedItem.OriginalMusicItem && (
+                <span>
+                  (originally bookmarked by{" "}
+                  <a href={`/user/${feedItem.OriginalMusicItemSaver.username}`}>
+                    {feedItem.OriginalMusicItemSaver.username}
+                  </a>
+                  )
+                </span>
+              )}
             </li>
           ))
         }
       </ul>
-  <div class="actions-group">
-        <a href="/sources/" class="button">📖 See all sources</a>
-        <a href="/sources/new" class="button">➕ Add a new source</a>
-    </div>
+
+      <Debug {feedItems} />
+
       <p>
-
-        <h2>Feed</h2>
-
-        <p>This section is a work in progress - once I build out the friendship + friend request + sharing functionality, this will be a feed of your friends' music discoveries / articles.</p>
-
-        <TODO
-          >currently this only has music items. Maybe it should also have articles?</TODO
-        >
-
-        <ul>
-          {
-            feedItems.map((feedItem) => (
-              <li>
-                <a href={feedItem.MusicItem.url}>{feedItem.MusicItem.title}</a>
-                <br />
-                {feedItem.MusicItem.note && (
-                  <span>{feedItem.MusicItem.note}</span>
-                )}
-                {feedItem.MusicItem.userId !== currentUser.id && (
-                  <form action="/music-items/new">
-                    <input
-                      type="hidden"
-                      name="original-music-item-id"
-                      value={feedItem.MusicItem.id}
-                    />
-                    <button>Save this music item</button>
-                  </form>
-                )}
-                <span>{formatDate(feedItem.MusicItem.createdAt)}</span>
-                User: {feedItem.User.username}
-                {feedItem.OriginalMusicItem && (
-                  <span>
-                    (originally bookmarked by{" "}
-                    <a
-                      href={`/user/${feedItem.OriginalMusicItemSaver.username}`}
-                    >
-                      {feedItem.OriginalMusicItemSaver.username}
-                    </a>
-                    )
-                  </span>
-                )}
-              </li>
-            ))
-          }
-        </ul>
-
-        <Debug {feedItems} />
-
-        <p>
-          This is where your bookmarks and your friends' bookmarks will show up.
-        </p>
-
-        <h2>Friends</h2>
-        <Debug {friendRequests} />
-
-        <Debug {friends} />
+        This is where your bookmarks and your friends' bookmarks will show up.
       </p>
+
+      <h2>Friends</h2>
+      <Debug {friendRequests} />
+
+      <Debug {friends} />
     </p>
-  </p></Layout
->
+  </p>
+</Layout>

@@ -36,12 +36,15 @@ if (formResult?.data) {
   return Astro.redirect(returnUrl);
 }
 
-const breadcrumbs = [{title: "📖 Sources", url: "/sources/"}]
-
+const breadcrumbs = [{ title: "📖 Sources", url: "/sources/" }];
 ---
 
 <Layout title="➕ Add a new source" {breadcrumbs}>
-  <p>A source is a website that you check periodically for new music. This could be a music publication, a blog, a YouTube channel, a Reddit community or a friend's Last.fm profile.</p>
+  <p>
+    A source is a website that you check periodically for new music. This could
+    be a music publication, a blog, a YouTube channel, a Reddit community or a
+    friend's Last.fm profile.
+  </p>
   {formResult && <Debug {formResult} />}
   <form method="POST">
     <div>
@@ -50,6 +53,7 @@ const breadcrumbs = [{title: "📖 Sources", url: "/sources/"}]
         id="url-input"
         {...newSourceForm.inputProps.url}
         required
+        data-fill-url-title-to="title-input"
         transition:persist
       />
       {formResult?.fieldErrors?.url && <p>{formResult.fieldErrors.url}</p>}
@@ -58,9 +62,13 @@ const breadcrumbs = [{title: "📖 Sources", url: "/sources/"}]
       <label for="title-input">Title</label>
       <input
         id="title-input"
+        aria-describedby="title-input-help-text"
         {...newSourceForm.inputProps.title}
         transition:persist
       />
+      <span class="help-text" id="title-input-help-text">
+        <em>This will be automatically filled in when you enter the URL.</em>
+      </span>
       {formResult?.fieldErrors?.title && <p>{formResult.fieldErrors.title}</p>}
     </div>
     <div>
@@ -75,3 +83,5 @@ const breadcrumbs = [{title: "📖 Sources", url: "/sources/"}]
     <button>Add</button>
   </form>
 </Layout>
+
+<script src="@src/scripts/fill-title-from-url.js"></script>

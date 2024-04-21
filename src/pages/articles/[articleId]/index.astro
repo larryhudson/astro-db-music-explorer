@@ -151,7 +151,7 @@ const breadcrumbs = [{ title: "💬 Articles", url: "/articles/" }];
         <form method="POST" class="actions-group">
   <a href={article.url} target="_blank" class="button">Open article in new tab ↗</a>
 {source && (
-  <a href={`/sources/${source.id}`}>Go to source: {source.title}</a>
+  <a href={`/sources/${source.id}`} class="button">Go to source: {source.title}</a>
 )}
           {actions.map((action: any) => (
             <button

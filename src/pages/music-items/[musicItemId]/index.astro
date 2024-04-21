@@ -164,6 +164,7 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
   <h2>Actions</h2>
 
         <form method="POST" class="actions-group">
+  <a href={musicItem.url} target="_blank" class="button">Open music item in new tab ↗</a>
           {actions.map((action: any) => (
             <button
               name="form-action"
