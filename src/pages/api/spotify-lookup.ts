@@ -65,7 +65,7 @@ export async function GET(Astro: APIContext) {
 			const artistString = searchResult.artists.map(artist => artist.name).join(", ");
 			return `${artistString} - ${searchResult.name}`;
 		} else if (searchType === "artist") {
-			return searchResult.name;
+			return `Artist: ${searchResult.name}`;
 		}
 	}
 
