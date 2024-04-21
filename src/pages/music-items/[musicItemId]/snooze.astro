@@ -1,7 +1,7 @@
 ---
 import Layout from "@src/components/Layout.astro";
 
-import { db, Bookmark, BookmarkSnooze, eq, and, isNull, NOW } from "astro:db";
+import { db, MusicItem, MusicItemSnooze,  eq, and, isNull, NOW } from "astro:db";
 import { Debug } from "astro:components";
 
 import { calculateSnoozeUntilDate } from "@src/utils/dates";
@@ -9,37 +9,37 @@ import { calculateSnoozeUntilDate } from "@src/utils/dates";
 let statusMessage;
 
 const currentUser = Astro.locals.user;
-const bookmarkId = Astro.params.bookmarkId;
+const musicItemId = Astro.params.musicItemId;
 const returnUrlFromSearchParams = Astro.url.searchParams.get("return_to");
 
 if (!currentUser) {
   return Astro.redirect("/auth/login/");
 }
 
-const [existingBookmark] = await db
+const [existingMusicItem] = await db
   .select()
-  .from(Bookmark)
+  .from(MusicItem)
   .where(
     and(
-      eq(Bookmark.userId, currentUser.id),
-      eq(Bookmark.id, bookmarkId),
+      eq(MusicItem.userId, currentUser.id),
+      eq(MusicItem.id, musicItemId),
     ),
   ).limit(1);
 
 if (Astro.request.method === "POST") {
   const formData = await Astro.request.formData();
   const formAction = formData.get("form-action");
-  const urlToReturnTo = formData.get("return_to") || `/bookmarks/`;
+  const urlToReturnTo = formData.get("return_to") || `/music-items/`;
 
   if (formAction === "snooze") {
     await db
-      .update(Bookmark)
+      .update(MusicItem)
       .set({
         status: "snoozed",
         statusChangedAt: NOW,
-        statusChangedFrom: existingBookmark.status,
+        statusChangedFrom: existingMusicItem.status,
       })
-      .where(eq(Bookmark.id, bookmarkId));
+      .where(eq(MusicItem.id, musicItemId));
 
     // eg: 1
     const snoozeTimeNum = parseInt(formData.get("snooze_time"), 10);
@@ -51,14 +51,14 @@ if (Astro.request.method === "POST") {
 
     const note = formData.get("note");
 
-    await db.insert(BookmarkSnooze).values({
-      bookmarkId,
+    await db.insert(MusicItemSnooze).values({
+      musicItemId,
       snoozeUntil: snoozeUntilDate,
       note
     });
 
     const returnUrl = new URL(urlToReturnTo, Astro.url.origin);
-    returnUrl.searchParams.set("status_message", "Bookmark snoozed.");
+    returnUrl.searchParams.set("status_message", "Music item snoozed.");
 
     return Astro.redirect(returnUrl);
   }
@@ -66,9 +66,8 @@ if (Astro.request.method === "POST") {
 
 ---
 
-<Layout title="Snoozing bookmark">
+<Layout title="Snoozing music item">
   {statusMessage && <p>{statusMessage}</p>}
-  <p>This is the page for snoozing a bookmark.</p>
 
   <form method="POST">
 
@@ -92,5 +91,5 @@ if (Astro.request.method === "POST") {
     <button name="form-action" value="snooze" type="submit">Snooze</button>
     </form>
 
-  <Debug {existingBookmark} />
+  <Debug {existingMusicItem} />
 </Layout>
