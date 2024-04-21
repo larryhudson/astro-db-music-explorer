@@ -1,0 +1,58 @@
+---
+import Layout from "@src/components/Layout.astro";
+import ListGrid from "@src/components/ListGrid.astro";
+
+import { db, MusicItem, User, eq, and } from "astro:db";
+import { Debug } from "astro:components";
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+
+  const formAction = formData.get("form-action");
+
+  if (formAction === "unarchive") {
+    const id = formData.get("id");
+    await db
+      .update(MusicItem)
+      .set({ archivedAt: null })
+      .where(eq(MusicItem._id, id));
+  }
+}
+
+const archivedMusicItems = await db
+  .select()
+  .from(MusicItem)
+  .where(
+    and(eq(MusicItem.userId, currentUser.id), eq(MusicItem.status, "archived")),
+  );
+
+const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
+---
+
+<Layout title="📁 Music items archive" {breadcrumbs}>
+  <p>This is going to be the music items archive.</p>
+
+  {
+    archivedMusicItems.length === 0 && (
+      <p>You haven't archived any music items yet.</p>
+    )
+  }
+
+  {
+    archivedMusicItems.length > 0 && (
+      <ListGrid
+        items={archivedMusicItems}
+        getItemUrl={(musicItem) => `/music-items/${musicItem.id}/`}
+        actions={[{ label: "Unarchive", value: "unarchive" }]}
+      />
+    )
+  }
+
+  <p><a href="/music-items/" class="button">↩️ Back to your music items</a></p>
+</Layout>

@@ -1,0 +1,305 @@
+---
+import Layout from "@src/components/Layout.astro";
+import TODO from "@src/components/TODO.astro";
+import { createForm } from "simple:form";
+import { z } from "zod";
+import { db, Article, MusicItem, MusicItemArticle, eq, and } from "astro:db";
+import { Debug } from "astro:components";
+import { Source } from "astro:db";
+
+const currentUser = Astro.locals.user;
+if (!currentUser) {
+  return Astro.redirect("/auth/login");
+}
+
+const originalArticleId = Astro.url.searchParams.get("original-article-id");
+
+let originalArticle;
+
+if (originalArticleId) {
+  [originalArticle] = await db
+    .select()
+    .from(Article)
+    .where(eq(Article.id, originalArticleId))
+    .limit(1);
+}
+
+const musicItemIdStr = Astro.url.searchParams.get("music-item-id");
+const musicItemId = musicItemIdStr && parseInt(musicItemIdStr, 10);
+
+let musicItem, googleUrl;
+
+if (musicItemId) {
+  [musicItem] = await db
+    .select()
+    .from(MusicItem)
+    .where(
+      and(eq(MusicItem.id, musicItemId), eq(MusicItem.userId, currentUser.id)),
+    )
+    .limit(1);
+
+  googleUrl = new URL("https://www.google.com/search");
+  googleUrl.searchParams.set("q", `${musicItem.title} music review`);
+}
+
+const sourceIdStr = Astro.url.searchParams.get("source-id");
+const sourceId = sourceIdStr && parseInt(sourceIdStr, 10);
+
+let source;
+
+if (sourceId) {
+  [source] = await db
+    .select()
+    .from(Source)
+    .where(and(eq(Source.id, sourceId), eq(Source.userId, currentUser.id)))
+    .limit(1);
+}
+
+const returnToUrl = Astro.url.searchParams.get("return-to-url");
+
+const defaultTitle = originalArticle?.title || "";
+const defaultUrl = originalArticle?.url || "";
+const defaultNote = originalArticle?.note || "";
+
+const newArticleForm = createForm({
+  url: z.string().url(),
+  title: z.string().min(1),
+  note: z.string().optional(),
+  originalArticleId: z.string().optional(),
+  musicItemId: z.number().optional(),
+  sourceId: z.string().optional(),
+  returnToUrl: z.string().optional().default("/articles/"),
+  actionAfterSaving: z
+    .enum(["openCreatedItem", "goBackToArticles", "addAnother"])
+    .optional(),
+  shouldCreateSource: z.boolean().optional(),
+  newSourceTitle: z.string().optional(),
+  newSourceUrl: z.string().optional(),
+});
+
+const formResult = await Astro.locals.form.getData(newArticleForm);
+
+console.log({ formResult });
+
+if (formResult?.data) {
+  const {
+    url,
+    title,
+    note,
+    originalArticleId,
+    musicItemId,
+    sourceId,
+    returnToUrl,
+    shouldCreateSource,
+    actionAfterSaving,
+    newSourceUrl,
+    newSourceTitle,
+  } = formResult.data;
+
+  console.log({ returnToUrl });
+
+  const createdArticle = await db.insert(Article).values({
+    url,
+    title,
+    note,
+    userId: currentUser.id,
+    originalArticleId,
+    sourceId,
+  });
+
+  const createdArticleId = createdArticle.lastInsertRowid;
+
+  if (musicItemId) {
+    // double check the article exists and belongs to user
+    const [musicItem] = await db
+      .select()
+      .from(MusicItem)
+      .where(
+        and(
+          eq(MusicItem.id, musicItemId),
+          eq(MusicItem.userId, currentUser.id),
+        ),
+      );
+
+    if (!musicItem) {
+      return Astro.error(404, "Music item not found");
+    }
+
+    await db.insert(MusicItemArticle).values({
+      musicItemId: musicItem.id,
+      articleId: createdArticleId,
+    });
+  }
+
+  if (shouldCreateSource && newSourceUrl && newSourceTitle) {
+    console.log({ newSourceUrl, newSourceTitle });
+    const createdSource = await db.insert(Source).values({
+      title: newSourceTitle,
+      url: newSourceUrl,
+      userId: currentUser.id,
+    });
+    const createdSourceId = createdSource.lastInsertRowid;
+    await db
+      .update(Article)
+      .set({ sourceId: createdSourceId })
+      .where(eq(Article.id, createdArticleId));
+  }
+
+  if (actionAfterSaving === "openCreatedItem") {
+    const returnUrl = new URL(
+      `/articles/${createdArticleId}`,
+      Astro.url.origin,
+    );
+    returnUrl.searchParams.set("message", "Created article");
+    return Astro.redirect(returnUrl);
+  } else if (actionAfterSaving === "goBackToArticles") {
+    const returnUrl = new URL("/articles/", Astro.url.origin);
+    returnUrl.searchParams.set("message", "Created article");
+    return Astro.redirect(returnUrl);
+  } else if (actionAfterSaving === "addAnother") {
+    const returnUrl = new URL("/articles/new", Astro.url.origin);
+    returnUrl.searchParams.set("message", "Created article");
+    return Astro.redirect(returnUrl);
+  }
+
+  const returnUrl = new URL(returnToUrl, Astro.url.origin);
+  returnUrl.searchParams.set("message", "Created article");
+
+  return Astro.redirect(returnUrl);
+}
+
+const breadcrumbs = [{ title: "💬 Articles", url: "/articles/" }];
+---
+
+<Layout title="➕ Add a new article" {breadcrumbs}>
+  {formResult && <Debug {formResult} />}
+
+  <form method="POST">
+    {
+      originalArticleId && (
+        <input
+          type="hidden"
+          name="original-article-id"
+          value={originalArticleId}
+        />
+      )
+    }
+    <input type="hidden" name="musicItemId" value={musicItem?.id || ""} />
+    {
+      musicItem && (
+        <p>
+          Adding article for music item:{" "}
+          <a href={`/music-items/${musicItem.id}/`}>{musicItem.title}</a>.{" "}
+          <a href={googleUrl} target="_blank">
+            Search Google for reviews in new tab
+          </a>
+        </p>
+      )
+    }
+    {source && <input type="hidden" name="sourceId" value={source.id} />}
+    {
+      source && (
+        <p>
+          Adding article for source:{" "}
+          <a href={source.url} target="_blank">
+            {source.title}
+          </a>{" "}
+          (click to open in new tab)
+        </p>
+      )
+    }
+    {
+      returnToUrl && (
+        <input type="hidden" name="returnToUrl" value={returnToUrl} />
+      )
+    }
+    <label for="url-input">URL</label>
+    <input
+      id="url-input"
+      data-fill-url-title-to="title-input"
+      data-fill-origin-url-to="new-source-url-input"
+      data-fill-origin-title-to="new-source-title-input"
+      {...newArticleForm.inputProps.url}
+      value={defaultUrl}
+      autofocus
+    />
+
+    {formResult?.fieldErrors?.url && <p>{formResult.fieldErrors.url}</p>}
+
+    <label for="title-input">Title</label>
+    <span class="help-text" id="title-input-help-text">
+      <em>This will be automatically filled in when you enter the URL.</em>
+    </span>
+    <input
+      id="title-input"
+      aria-describedby="title-input-help-text"
+      {...newArticleForm.inputProps.title}
+      value={defaultTitle}
+    />
+    {formResult?.fieldErrors?.title && <p>{formResult.fieldErrors.title}</p>}
+    <label for="note-input">Note (optional)</label>
+    <input
+      id="note-input"
+      {...newArticleForm.inputProps.note}
+      value={defaultNote}
+    />
+
+    <TODO
+      >If we are adding an article with a URL that matches an existing source,
+      it should be able to detect that. Eg. you are adding a new article with a
+      URL from an existing source but you're not adding it by clicking 'add a
+      new article for this source'. At the moment, the article will not be
+      linked to the source.</TODO
+    >
+    {
+      !source && (
+        <details>
+          <summary>Add a source with this article</summary>
+          <div>
+            <p>
+              If you want to check on this source periodically, you can create a
+              new source at the same time.
+            </p>
+
+            <input
+              type="checkbox"
+              id="should-create-source-checkbox"
+              {...newArticleForm.inputProps.shouldCreateSource}
+            />
+            <label for="should-create-source-checkbox">
+              Create a new source for this article
+            </label>
+
+            <label for="new-source-title-input">Source title</label>
+            <input
+              id="new-source-title-input"
+              {...newArticleForm.inputProps.newSourceTitle}
+            />
+
+            <label for="new-source-url-input">Source URL</label>
+            <input
+              id="new-source-url-input"
+              {...newArticleForm.inputProps.newSourceUrl}
+            />
+          </div>
+        </details>
+      )
+    }
+
+    <button>Save</button>
+    <button name="actionAfterSaving" value="openCreatedItem"
+      >Save and open</button
+    >
+    <button name="actionAfterSaving" value="addAnother"
+      >Save and add another</button
+    >
+  </form>
+</Layout>
+
+<script src="@src/scripts/fill-title-from-url.js"></script>
+
+<style>
+  .help-text {
+    font-size: var(--step--1);
+  }
+</style>

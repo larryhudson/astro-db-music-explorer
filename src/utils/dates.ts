@@ -21,3 +21,7 @@ export function calculateSnoozeUntilDate(number: number, unit: string) {
 			throw new Error('Invalid unit. Please use "day", "week", or "month".');
 	}
 }
+
+export function formatDate(dateString) {
+	return new Date(dateString).toLocaleString();
+}

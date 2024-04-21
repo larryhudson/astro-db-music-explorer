@@ -4,13 +4,25 @@ const { next, prev, current } = Astro.props;
 
 <div class="next-prev">
   <div class="prev">
-    {prev && <a href={prev.url}>{prev.label}</a>}
+    {
+      prev && (
+        <a class="button" href={prev.url}>
+          {prev.label}
+        </a>
+      )
+    }
   </div>
   <div class="current">
     {current}
   </div>
   <div class="next">
-    {next && <a href={next.url}>{next.label}</a>}
+    {
+      next && (
+        <a class="button" href={next.url}>
+          {next.label}
+        </a>
+      )
+    }
   </div>
 </div>
 
@@ -22,13 +34,10 @@ const { next, prev, current } = Astro.props;
 
     margin-top: 1rem;
     margin-bottom: 1rem;
+    gap: 3rem;
   }
 
   .next-prev a {
-    display: block;
-    padding: 1rem;
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-    text-decoration: none;
+    display: inline-block;
   }
 </style>

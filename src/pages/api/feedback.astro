@@ -1,0 +1,41 @@
+---
+import Layout from "@src/components/Layout.astro";
+import { db, Feedback } from "astro:db";
+
+if (Astro.request.method !== "POST") {
+	return new Response(null, {
+		status: 405,
+		statusText: "Method Not Allowed",
+	});
+}
+
+const formData = await Astro.request.formData();
+const feedback = formData.get("feedback");
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+	return Astro.redirect("/auth/login/");
+}
+
+if (!feedback) {
+	return new Response(null, {
+		status: 400,
+		statusText: "Missing feedback parameter",
+	});
+}
+
+const pageUrl = Astro.request.headers.get("Referer");
+
+await db.insert(Feedback).values({
+	userId: currentUser.id,
+	feedback,
+	pageUrl,
+});
+---
+
+<Layout title="Thank you">
+	<p>Thanks for sending your feedback!</p>
+
+	<p><a href={pageUrl}>Return to where you were</a></p>
+</Layout>

@@ -1,0 +1,218 @@
+---
+import Layout from "@src/components/Layout.astro";
+import NextPrev from "@src/components/NextPrev.astro";
+
+import { db, Article, MusicItem, MusicItemArticle, Source, eq, gt, lt, and, isNull, NOW } from "astro:db";
+import { Debug } from "astro:components";
+
+let statusMessage;
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+const articleIdStr = Astro.params.articleId;
+const articleId = parseInt(articleIdStr, 10);
+
+const [articleBeforeUpdating] = await db
+  .select()
+  .from(Article)
+  .where(
+    and(
+      eq(Article.id, articleId),
+      eq(Article.userId, currentUser.id),
+    )
+  );
+
+if (!articleBeforeUpdating) {
+  return new Response("Could not find article", {status: 404});
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const formAction = formData.get("form-action");
+  const id = articleBeforeUpdating.id;
+
+  const returnUrlParam = formData.get("return-to-url");
+  const returnUrl = returnUrlParam && new URL(returnUrlParam, Astro.url.origin);
+
+  const newStatusForAction = {
+    archive: "archived",
+    unarchive: "to_check_out",
+    mark_as_checking_out: "checking_out",
+    mark_as_to_check_out: "to_check_out",
+  }[formAction];
+
+  if (newStatusForAction) {
+    await db
+      .update(Article)
+      .set({
+        status: newStatusForAction,
+        statusChangedAt: NOW,
+        statusChangedFrom: articleBeforeUpdating.status,
+      })
+      .where(
+        and(
+          eq(Article.id, id),
+          eq(Article.userId, currentUser.id),
+        )
+      );
+    statusMessage = `Article marked as ${newStatusForAction}.`;
+  } else if (formAction === "delete") {
+    await db.delete(MusicItemArticle).where(eq(MusicItemArticle.articleId, id));
+    await db
+      .delete(Article)
+      .where(and(eq(Article.id, id), eq(Article.userId, currentUser.id)));
+    statusMessage = "Article deleted.";
+    return Astro.redirect("/articles/");
+  } else if (formAction === "edit") {
+    const editUrl = new URL(`/articles/${id}/edit`, Astro.url.origin);
+    if (returnUrl) {
+      editUrl.searchParams.set("return-to-url", returnUrl);
+    }
+    return Astro.redirect(editUrl);
+  } 
+  if (returnUrl) {
+    returnUrl.searchParams.set("message", statusMessage);
+    return Astro.redirect(returnUrl);
+  }
+}
+
+// TODO: to investigate: I don't understand why I need to use 'fullJoin' for source here instead of 'innerJoin'. I want to get all the articles, and only get sources when the sourceId is set, but I get a 404 error if I use 'innerJoin'
+
+const userArticles = await db
+  .select()
+  .from(Article)
+  .fullJoin(Source, eq(Article.sourceId, Source.id))
+  .where(eq(Article.userId, currentUser.id))
+  .orderBy(Article.id);
+
+// Find the index of the current article
+const currentArticleIndex = userArticles.findIndex(b => b.Article.id === articleId);
+const currentArticleNum = currentArticleIndex + 1;
+
+const article = userArticles[currentArticleIndex]?.Article;
+const source = userArticles[currentArticleIndex]?.Source;
+
+if (!article) {
+    return new Response("Could not find article", {status: 404});
+}
+
+
+
+const totalArticles = userArticles.length;
+
+const prevArticle = userArticles[currentArticleIndex - 1]?.Article || null;
+const nextArticle = userArticles[currentArticleIndex + 1]?.Article || null;
+
+const newMusicItemUrl = new URL("/music-items/new", Astro.request.url);
+newMusicItemUrl.searchParams.set("article-id", article.id);
+newMusicItemUrl.searchParams.set("return-to-url", Astro.url.pathname);
+
+const relatedMusicItems = await db.select({
+  title: MusicItem.title,
+  id: MusicItem.id,
+}
+).from(MusicItemArticle).innerJoin(MusicItem, eq(MusicItemArticle.musicItemId, MusicItem.id)).where(eq(MusicItemArticle.articleId, articleId));
+
+const actions = [
+  article.status === "archived"
+    ? { value: "unarchive", label: "Unarchive" }
+    : { value: "archive", label: "Archive" },
+  {
+    value: "edit",
+    label: "Edit",
+  },
+  {
+    value: "delete",
+    label: "Delete",
+    confirm: "Are you sure you want to delete this article?",
+  },
+]
+
+const breadcrumbs = [{ title: "💬 Articles", url: "/articles/" }];
+---
+
+<Layout title={article.title} {breadcrumbs}>
+  {statusMessage && <p>{statusMessage}</p>}
+
+  <NextPrev
+    prev={prevArticle && {url: `/articles/${prevArticle.id}`, label: `Previous article: ${prevArticle.title}`}}
+    next={nextArticle && {url: `/articles/${nextArticle.id}`, label: `Next article: ${nextArticle.title}`}}
+    current={`Article ${currentArticleNum} of ${totalArticles}`}
+  />
+
+  <h2>Actions</h2>
+
+
+
+        <form method="POST" class="actions-group">
+  <a href={article.url} target="_blank" class="button">Open article in new tab ↗</a>
+{source && (
+  <a href={`/sources/${source.id}`}>Go to source: {source.title}</a>
+)}
+          {actions.map((action: any) => (
+            <button
+              name="form-action"
+              value={action.value}
+              data-confirm-message={action.confirm || undefined}
+            >
+              {action.label}
+            </button>
+          ))}
+        </form>
+
+  <h2>Related music items</h2>
+
+{relatedMusicItems.length > 0 && (
+<ul>
+{relatedMusicItems.map((musicItem) => (
+  <li><a href={`/music-items/${musicItem.id}`}>{musicItem.title}</a></li>
+))}
+</ul>
+)}
+
+  <Debug {relatedMusicItems} />
+
+  <p><a href={newMusicItemUrl}>Add new music item for this article</a></p>
+
+  <NextPrev
+    prev={prevArticle && {url: `/articles/${prevArticle.id}`, label: `Previous article: ${prevArticle.title}`}}
+    next={nextArticle && {url: `/articles/${nextArticle.id}`, label: `Next article: ${nextArticle.title}`}}
+    current={`Article ${currentArticleNum} of ${totalArticles}`}
+  />
+
+<Debug {article} />
+
+</Layout>
+
+<style>
+  .next-prev {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .next-prev a {
+    display: block;
+    padding: 1rem;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    text-decoration: none;
+      }
+</style>
+
+<script>
+  const buttonsWithConfirm = document.querySelectorAll(
+    "button[data-confirm-message]",
+  );
+
+  buttonsWithConfirm.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      if (!confirm(button.dataset.confirmMessage)) {
+        event.preventDefault();
+      }
+    });
+  });
+</script>

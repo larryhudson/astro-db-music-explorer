@@ -1,0 +1,141 @@
+---
+import Layout from "@src/components/Layout.astro";
+import ListGrid from "@src/components/ListGrid.astro";
+import ListTable from "@src/components/ListTable.astro";
+import TODO from "@src/components/TODO.astro";
+
+import {
+  db,
+  Article,
+  MusicItemArticle,
+  eq,
+  and,
+  isNull,
+  NOW,
+  asc,
+  desc,
+} from "astro:db";
+import { Debug } from "astro:components";
+
+let statusMessage;
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+const orderOptions = [
+  { value: "createdAt__asc", label: "Oldest to newest" },
+  { value: "createdAt__desc", label: "Newest to oldest" },
+  { value: "title__asc", label: "Alphabetical by title (A to Z)" },
+  { value: "title__desc", label: "Alphabetical by title (Z to A)" },
+];
+
+const orderStr = Astro.url.searchParams.get("order") || "createdAt__desc";
+
+const [orderByStr, orderDirStr] = orderStr.split("__");
+
+const orderBy =
+  {
+    createdAt: Article.createdAt,
+    title: Article.title,
+  }[orderByStr] || Article.createdAt;
+
+const orderDir =
+  {
+    asc: asc,
+    desc: desc,
+  }[orderDirStr] || asc;
+
+console.log({ orderBy, orderDir });
+
+const articlesToCheckOut = await db
+  .select()
+  .from(Article)
+  .where(
+    and(eq(Article.userId, currentUser.id), eq(Article.status, "to_check_out")),
+  )
+  .orderBy(orderDir(orderBy));
+---
+
+<Layout title="💬 Articles">
+  {statusMessage && <p>{statusMessage}</p>}
+
+  <p>
+    This is where you add articles that you want to read. This can include album
+    reviews, best-of lists and blog posts.
+  </p>
+
+  <details>
+    <summary>Need inspiration?</summary>
+    <div>
+      <ul>
+        <li>
+          You can check out your <a href="/sources/">sources</a> and see if they've
+          posted anything new.
+        </li>
+        <li>
+          You can check out your <a href="/music-items/">music items</a> and google
+          one of them to find album reviews / writing about an artist.
+        </li>
+        <li>
+          You can Google one of your favourite artists / albums and find a music
+          review on a website you haven't checked out before. That can be a good
+          way to find sources of interesting music.
+        </li>
+      </ul>
+    </div>
+  </details>
+
+  <div class="actions-group">
+    <a class="button" href="/articles/new">➕ Add a new article</a>
+    <a class="button" href="/articles/archive">📁 View articles archive</a>
+  </div>
+
+  <details>
+    <summary>
+      Sort articles
+    </summary>
+
+  <form>
+      <TODO>These sorting options could be moved into sorting buttons in the header of the table below - that feels more intuitive</TODO>
+      <p>Sort by</p>
+      <div class="actions-group">
+          {
+            orderOptions.map((option, optionIndex) => (
+              <input id={`order-option-${optionIndex}`} type="radio" name="order" value={option.value} checked={option.value === orderStr ? true : undefined} />
+              <label for={`order-option-${optionIndex}`}>{option.label}</label>
+            ))
+          }
+      </div>
+      <button>Apply sort</button>
+  </form>
+    </details>
+
+  <h2>Articles to check out</h2>
+
+  {articlesToCheckOut.length === 0 && <p>No articles to check out.</p>}
+
+  {
+    articlesToCheckOut.length > 0 && (
+      <ListTable
+        items={articlesToCheckOut}
+        getItemUrl={(article: any) => `/articles/${article.id}/`}
+        id="articles-to-check-out"
+        returnUrl={Astro.url.pathname}
+        actions={[
+          { value: "archive", label: "Archive" },
+          { value: "edit", label: "Edit" },
+          {
+            value: "delete",
+            label: "Delete",
+            confirm: "Are you sure you want to delete this article?",
+          },
+        ]}
+      />
+    )
+  }
+
+  <p><a class="button" href="/articles/new">➕ Add a new article</a></p>
+</Layout>

@@ -1,0 +1,18 @@
+---
+import TODO from "@src/components/TODO.astro";
+---
+
+<details>
+  <summary>Send feedback</summary>
+  <div>
+    <p>
+      You can use this form to send feedback. It will automatically include your
+      username and the URL of the current page you're looking at.
+    </p>
+    <form method="POST" action="/api/feedback" enctype="multipart/form-data">
+      <label for="feedback-textarea">Your feedback:</label>
+      <textarea id="feedback-textarea" name="feedback" required></textarea>
+      <button>Send feedback</button>
+    </form>
+  </div>
+</details>

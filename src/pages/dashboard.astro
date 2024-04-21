@@ -1,11 +1,16 @@
 ---
 import Layout from "@src/components/Layout.astro";
+import TODO from "@src/components/TODO.astro";
+import { formatDate } from "@src/utils/dates";
 import { Debug } from "astro:components";
+import { ne } from "astro:db";
 import {
   db,
   FriendRequest,
   User,
-  Bookmark,
+  MusicItem,
+  Article,
+  Source,
   eq,
   not,
   and,
@@ -58,108 +63,173 @@ const friends = await db
 console.log({ friends });
 const friendIds = friends.map((f) => f.User.id);
 
-const OriginalBookmark = alias(Bookmark, "OriginalBookmark");
-const OriginalBookmarker = alias(User, "OriginalBookmarker");
+const OriginalMusicItem = alias(MusicItem, "OriginalMusicItem");
+const OriginalMusicItemSaver = alias(User, "OriginalMusicItemSaver");
 
 const feedItems = await db
   .select()
-  .from(Bookmark)
-  .innerJoin(User, eq(Bookmark.userId, User.id))
+  .from(MusicItem)
+  .innerJoin(User, eq(MusicItem.userId, User.id))
   .leftJoin(
-    OriginalBookmark,
-    eq(Bookmark.originalBookmarkId, OriginalBookmark.id),
+    OriginalMusicItem,
+    eq(MusicItem.originalMusicItemId, OriginalMusicItem.id),
   )
   .leftJoin(
-    OriginalBookmarker,
-    eq(OriginalBookmark.userId, OriginalBookmarker.id),
+    OriginalMusicItemSaver,
+    eq(OriginalMusicItem.userId, OriginalMusicItemSaver.id),
   )
   .where(
     or(
-      eq(Bookmark.userId, currentUser.id),
-      inArray(Bookmark.userId, friendIds),
+      eq(MusicItem.userId, currentUser.id),
+      friendIds.length > 0 && inArray(MusicItem.userId, friendIds),
     ),
   )
-  .orderBy(desc(Bookmark.createdAt));
+  .orderBy(desc(MusicItem.createdAt));
+
+const mostRecentArticles = await db
+  .select()
+  .from(Article)
+  .where(
+    and(eq(Article.userId, currentUser.id), ne(Article.status, "archived")),
+  )
+  .orderBy(desc(Article.createdAt))
+  .limit(5);
+
+const mostRecentMusicItems = await db
+  .select()
+  .from(MusicItem)
+  .where(
+    and(eq(MusicItem.userId, currentUser.id), ne(MusicItem.status, "archived")),
+  )
+  .orderBy(desc(MusicItem.createdAt))
+  .limit(5);
+
+const mostRecentSources = await db
+  .select()
+  .from(Source)
+  .where(eq(Source.userId, currentUser.id))
+  .orderBy(desc(Source.createdAt))
+  .limit(5);
+
 const spotifyToken = await Astro.locals.getSpotifyToken();
-
-function formatDate(dateString) {
-  return new Date(dateString).toLocaleString();
-}
-
-function isMine(bookmark) {
-  return bookmark.userId === currentUser.id;
-}
 ---
 
-<Layout title="Dashboard">
-  <p>This is going to be the homepage for logged in users.</p>
-
-  <p>It will have:</p>
-  <ul>
-    <li>a feed of bookmarks from friends?</li>
-  </ul>
-
-  <p><a href="/bookmarks/">Bookmarks</a></p>
-
-  <h2>Login with Spotify</h2>
-
+<Layout title="🏠 Dashboard">
+  <h2>Latest</h2>
+  <h3>💬 Articles</h3>
+  {mostRecentArticles.length === 0 && <p>No recent articles to show.</p>}
   {
-    spotifyToken && (
-      <div>
-        <p>You are logged in with Spotify. Spotify token: {spotifyToken}</p>
-        <Debug {spotifyToken} />
-      </div>
+    mostRecentArticles.length > 0 && (
+      <ul>
+        {mostRecentArticles.map((article) => (
+          <li>
+            <a href={`/articles/${article.id}`}>{article.title}</a>
+          </li>
+        ))}
+      </ul>
     )
   }
+  <div class="actions-group">
+    <a href="/articles/" class="button">💬 See all articles</a>
+    <a href="/articles/new" class="button">➕ Add a new article</a>
+    </div>
 
-  {
-    !spotifyToken && (
-      <p>
-        <a href="/auth/spotify/">Login with Spotify</a>
-      </p>
-    )
-  }
+    </p>
 
-  <h2>Feed</h2>
-
-  <ul>
+    <h3>🎵 Music items</h3>
+    {mostRecentMusicItems.length === 0 && <p>No recent music items to show.</p>}
     {
-      feedItems.map((feedItem) => (
-        <li>
-          <a href={feedItem.Bookmark.url}>{feedItem.Bookmark.note}</a>
-          <br />
-          {!isMine(feedItem.Bookmark) && (
-            <form action="/bookmarks/new">
-              <input
-                type="hidden"
-                name="original-bookmark-id"
-                value={feedItem.Bookmark.id}
-              />
-              <button>Rebookmark</button>
-            </form>
-          )}
-          <span>{formatDate(feedItem.Bookmark.createdAt)}</span>
-          User: {feedItem.User.username}
-          {feedItem.OriginalBookmark && (
-            <span>
-              (originally bookmarked by{" "}
-              <a href={`/user/${feedItem.OriginalBookmarker.username}`}>
-                {feedItem.OriginalBookmarker.username}
-              </a>
-              )
-            </span>
-          )}
-        </li>
-      ))
+      mostRecentMusicItems.length > 0 && (
+        <ul>
+          {mostRecentMusicItems.map((musicItem) => (
+            <li>
+              <a href={`/music-items/${musicItem.id}`}>{musicItem.title}</a>
+            </li>
+          ))}
+        </ul>
+      )
     }
-  </ul>
+    <p>
 
-  <Debug {feedItems} />
+  <div class="actions-group">
+      <a href="/music-items/" class="button">🎵 See all music items</a>
+      <a href="/music-items/new" class="button">➕ Add a new music item</a>
+    </div>
 
-  <p>This is where your bookmarks and your friends' bookmarks will show up.</p>
+      <h3>📖 Sources</h3>
+      {mostRecentSources.length === 0 && <p>No recent sources to show.</p>}
 
-  <h2>Friends</h2>
-  <Debug {friendRequests} />
+      <ul>
+        {
+          mostRecentSources.map((source) => (
+            <li>
+              <a href={`/sources/${source.id}`}>{source.title}</a>
+            </li>
+          ))
+        }
+      </ul>
+  <div class="actions-group">
+        <a href="/sources/" class="button">📖 See all sources</a>
+        <a href="/sources/new" class="button">➕ Add a new source</a>
+    </div>
+      <p>
 
-  <Debug {friends} />
-</Layout>
+        <h2>Feed</h2>
+
+        <p>This section is a work in progress - once I build out the friendship + friend request + sharing functionality, this will be a feed of your friends' music discoveries / articles.</p>
+
+        <TODO
+          >currently this only has music items. Maybe it should also have articles?</TODO
+        >
+
+        <ul>
+          {
+            feedItems.map((feedItem) => (
+              <li>
+                <a href={feedItem.MusicItem.url}>{feedItem.MusicItem.title}</a>
+                <br />
+                {feedItem.MusicItem.note && (
+                  <span>{feedItem.MusicItem.note}</span>
+                )}
+                {feedItem.MusicItem.userId !== currentUser.id && (
+                  <form action="/music-items/new">
+                    <input
+                      type="hidden"
+                      name="original-music-item-id"
+                      value={feedItem.MusicItem.id}
+                    />
+                    <button>Save this music item</button>
+                  </form>
+                )}
+                <span>{formatDate(feedItem.MusicItem.createdAt)}</span>
+                User: {feedItem.User.username}
+                {feedItem.OriginalMusicItem && (
+                  <span>
+                    (originally bookmarked by{" "}
+                    <a
+                      href={`/user/${feedItem.OriginalMusicItemSaver.username}`}
+                    >
+                      {feedItem.OriginalMusicItemSaver.username}
+                    </a>
+                    )
+                  </span>
+                )}
+              </li>
+            ))
+          }
+        </ul>
+
+        <Debug {feedItems} />
+
+        <p>
+          This is where your bookmarks and your friends' bookmarks will show up.
+        </p>
+
+        <h2>Friends</h2>
+        <Debug {friendRequests} />
+
+        <Debug {friends} />
+      </p>
+    </p>
+  </p></Layout
+>

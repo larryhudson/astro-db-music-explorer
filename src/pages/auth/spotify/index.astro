@@ -2,6 +2,9 @@
 import Layout from "@src/components/Layout.astro";
 import { Debug } from "astro:components";
 
+const returnToUrl =
+  Astro.url.searchParams.get("return-to-url") || "/dashboard/";
+
 function getSpotifyAuthUrl() {
   const spotifyUrlBase = "https://accounts.spotify.com/authorize";
   const clientId = import.meta.env.SPOTIFY_CLIENT_ID;
@@ -12,6 +15,7 @@ function getSpotifyAuthUrl() {
   spotifyUrl.searchParams.append("response_type", "code");
   spotifyUrl.searchParams.append("redirect_uri", redirectUri);
   spotifyUrl.searchParams.append("scope", scopes.join(" "));
+  spotifyUrl.searchParams.append("state", returnToUrl);
   return spotifyUrl.toString();
 }
 

@@ -1,0 +1,217 @@
+---
+import Layout from "@src/components/Layout.astro";
+import ListGrid from "@src/components/ListGrid.astro";
+import ListTable from "@src/components/ListTable.astro";
+
+import { db, MusicItem, eq, and, isNull, NOW, asc, desc } from "astro:db";
+import { Debug } from "astro:components";
+
+let statusMessage;
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const formAction = formData.get("form-action");
+  const id = formData.get("id");
+
+  if (formAction === "archive") {
+    await db
+      .update(MusicItem)
+      .set({
+        status: "archived",
+        statusChangedAt: NOW,
+        statusChangedFrom: "to_check_out",
+      })
+      .where(eq(MusicItem.id, id));
+    statusMessage = "MusicItem archived.";
+  } else if (formAction === "delete") {
+    await db
+      .delete(MusicItem)
+      .where(and(eq(MusicItem.id, id), eq(MusicItem.userId, currentUser.id)));
+    statusMessage = "MusicItem deleted.";
+  } else if (formAction === "edit") {
+    const editUrl = `/music-items/${id}/edit`;
+    return Astro.redirect(editUrl);
+  } else if (formAction === "mark_as_checking_out") {
+    await db
+      .update(MusicItem)
+      .set({
+        status: "checking_out",
+        statusChangedAt: NOW,
+        statusChangedFrom: "to_check_out",
+      })
+      .where(eq(MusicItem.id, id));
+    statusMessage = "MusicItem marked as in rotation.";
+  } else if (formAction === "snooze") {
+    const snoozeUrl = new URL(`/music-items/${id}/snooze/`, Astro.url.origin);
+    snoozeUrl.searchParams.set("return_to", Astro.url.pathname);
+    return Astro.redirect(snoozeUrl);
+  }
+}
+
+const orderOptions = [
+  { value: "createdAt__asc", label: "Oldest to newest" },
+  { value: "createdAt__desc", label: "Newest to oldest" },
+  { value: "title__asc", label: "Alphabetical by title (A to Z)" },
+  { value: "title__desc", label: "Alphabetical by title (Z to A)" },
+];
+
+const orderStr = Astro.url.searchParams.get("order") || "createdAt__desc";
+
+const [orderByStr, orderDirStr] = orderStr.split("__");
+
+const orderBy =
+  {
+    createdAt: MusicItem.createdAt,
+    title: MusicItem.title,
+  }[orderByStr] || MusicItem.createdAt;
+
+const orderDir =
+  {
+    asc: asc,
+    desc: desc,
+  }[orderDirStr] || asc;
+
+console.log({ orderBy, orderDir });
+
+const musicItemsInRotation = await db
+  .select()
+  .from(MusicItem)
+  .where(
+    and(
+      eq(MusicItem.userId, currentUser.id),
+      eq(MusicItem.status, "checking_out"),
+    ),
+  )
+  .orderBy(orderDir(orderBy));
+
+const musicItemsToCheckOut = await db
+  .select()
+  .from(MusicItem)
+  .where(
+    and(
+      eq(MusicItem.userId, currentUser.id),
+      eq(MusicItem.status, "to_check_out"),
+    ),
+  )
+  .orderBy(orderDir(orderBy));
+---
+
+<Layout title="🎵 Music items">
+  {statusMessage && <p>{statusMessage}</p>}
+
+  <p>
+    This is where you save and manage music items - artists, albums and songs
+    you want to check out.
+  </p>
+
+  <details>
+    <summary>Need inspiration?</summary>
+    <div>
+      <ul>
+        <li>
+          You can check out your <a href="/sources/">sources</a> and see if they've
+          posted anything new.
+        </li>
+        <li>
+          You can check out your <a href="/articles/">articles</a> and read them
+          to find music items to try out.
+        </li>
+        <li>
+          If you've been listening to a particular artist lately, you could check out the rest of their discography, or look at the record label they are signed to, to find new music items.
+        </li>
+      </ul>
+    </div>
+  </details>
+
+  <div class="actions-group">
+    <a class="button" href="/music-items/new">➕ Add a new music item</a>
+    <a class="button" href="/music-items/archive">📁 View music items archive</a>
+  </div>
+
+  <form>
+    <fieldset>
+      <legend>Sort music items</legend>
+      <div>
+        <label for="order-elect">Sort by</label>
+        <select name="order" id="order-select">
+          {
+            orderOptions.map((option) => (
+              <option
+                value={option.value}
+                selected={option.value === orderStr ? "true" : undefined}
+              >
+                {option.label}
+              </option>
+            ))
+          }
+        </select>
+      </div>
+      <button>Apply sort</button>
+    </fieldset>
+  </form>
+
+  <h2>Music items in rotation</h2>
+
+  {musicItemsInRotation.length === 0 && <p>No music items in rotation.</p>}
+
+  {
+    musicItemsInRotation.length > 0 && (
+      <ListTable
+        items={musicItemsInRotation}
+        getItemUrl={(musicItem: any) => `/music-items/${musicItem.id}/`}
+        id="music-items-in-rotation"
+        returnUrl={Astro.url.pathname}
+        actions={[
+          { value: "mark_as_to_check_out", label: "📋 Mark as to check out" },
+          {
+            value: "delete",
+            label: "❌ Delete",
+            confirm: "Are you sure you want to delete this musicItem?",
+          },
+          { value: "archive", label: "📁 Archive" },
+          { value: "snooze", label: "💤 Snooze" },
+        ]}
+      />
+    )
+  }
+
+  <h2>Music items to check out</h2>
+
+  {musicItemsToCheckOut.length === 0 && <p>No music items to check out.</p>}
+
+  {
+    musicItemsToCheckOut.length > 0 && (
+      <ListTable
+        items={musicItemsToCheckOut}
+        getItemUrl={(musicItem: any) => `/music-items/${musicItem.id}/`}
+        id="music-items-to-check-out"
+        returnUrl={Astro.url.pathname}
+        actions={[
+          {
+            value: "mark_as_checking_out",
+            label: "🔁 Mark as in rotation",
+            htmxTarget: "#music-items-in-rotation",
+          },
+          {
+            value: "delete",
+            label: "❌ Delete",
+            confirm: "Are you sure you want to delete this musicItem?",
+          },
+          { value: "archive", label: "📁 Archive" },
+          { value: "edit", label: "📝 Edit" },
+          { value: "snooze", label: "💤 Snooze" },
+        ]}
+      />
+    )
+  }
+
+  <p><a href="/music-items/new" class="button">➕ Add a new music item</a></p>
+
+  <Debug {musicItemsToCheckOut} />
+</Layout>

@@ -1,6 +1,8 @@
 ---
 import Layout from "@src/components/Layout.astro";
 import ListGrid from "@src/components/ListGrid.astro";
+import ListTable from "@src/components/ListTable.astro";
+import TODO from "@src/components/TODO.astro";
 
 import { db, Source, eq, and } from "astro:db";
 import { Debug } from "astro:components";
@@ -32,21 +34,43 @@ const userSources = await db
   .where(eq(Source.userId, currentUser.id));
 ---
 
-<Layout title="Sources">
+<Layout title="📖 Sources">
   {statusMessage && <p>{statusMessage}</p>}
-  <p>This is going to be the sources page.</p>
+  <p>
+    This is where you add sources that you check out to find new music. This can
+    include music publications, YouTube channels, Reddit communities, Discords,
+    etc.
+  </p>
+
+  <details>
+    <summary>Need inspiration?</summary>
+    <div>
+      <ul>
+        <li>
+          You can Google one of your favourite artists / albums and find a music
+          review on a website you haven't checked out before. That can be a good
+          way to find sources of interesting music.
+        </li>
+      </ul>
+    </div>
+  </details>
+
+  <p><a href="/sources/new" class="button">➕ Add a new source</a></p>
 
   <h2>Your sources</h2>
 
+  {
+    userSources.length > 0 && (
   <p>
     You can <a href="/sources/flick-through/">flick through your sources</a>.
   </p>
+)}
 
   {userSources.length === 0 && <p>You haven't added a source yet.</p>}
 
   {
     userSources.length > 0 && (
-      <ListGrid
+      <ListTable
         items={userSources}
         getItemUrl={(source: any) => `/sources/${source.id}/`}
         actions={[
@@ -59,8 +83,6 @@ const userSources = await db
       />
     )
   }
-
-  <p><a href="/sources/new">Add a new source</a></p>
 
   <Debug {userSources} />
 </Layout>

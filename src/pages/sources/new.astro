@@ -1,47 +1,76 @@
 ---
 import Layout from "@src/components/Layout.astro";
 import { db, Source, eq } from "astro:db";
+import { Debug } from "astro:components";
+import { z } from "zod";
+import { createForm } from "simple:form";
 
 const currentUser = Astro.locals.user;
 if (!currentUser) {
   return Astro.redirect("/auth/login");
 }
 
-if (Astro.request.method === "POST") {
-  const formData = await Astro.request.formData();
-  const url = formData.get("url") as string;
-  const name = formData.get("name") as string;
-  const note = formData.get("note") as string;
+const newSourceForm = createForm({
+  url: z.string().url(),
+  title: z.string().min(1),
+  note: z.string().optional(),
+  returnToUrl: z.string().optional().default("/sources/"),
+});
 
-  if (!url || typeof url !== "string") {
-    return new Response("Invalid URL", { status: 400 });
-  }
+const formResult = await Astro.locals.form.getData(newSourceForm);
+
+if (formResult?.data) {
+  const { url, title, note, returnToUrl } = formResult.data;
 
   await db.insert(Source).values({
     url,
+    title,
     note,
-    name,
     userId: currentUser.id,
   });
 
-  return Astro.redirect("/sources/");
+  const returnUrl = new URL(returnToUrl, Astro.url.origin);
+
+  returnUrl.searchParams.set("message", "Created source");
+
+  return Astro.redirect(returnUrl);
 }
+
+const breadcrumbs = [{title: "📖 Sources", url: "/sources/"}]
+
 ---
 
-<Layout title="Add a new source">
-  <p>Form for adding a new source</p>
+<Layout title="➕ Add a new source" {breadcrumbs}>
+  <p>A source is a website that you check periodically for new music. This could be a music publication, a blog, a YouTube channel, a Reddit community or a friend's Last.fm profile.</p>
+  {formResult && <Debug {formResult} />}
   <form method="POST">
     <div>
       <label for="url-input">URL</label>
-      <input type="url" name="url" id="url-input" required />
+      <input
+        id="url-input"
+        {...newSourceForm.inputProps.url}
+        required
+        transition:persist
+      />
+      {formResult?.fieldErrors?.url && <p>{formResult.fieldErrors.url}</p>}
     </div>
     <div>
-      <label for="name-input">Name (optional)</label>
-      <input type="text" name="name" id="name-input" />
+      <label for="title-input">Title</label>
+      <input
+        id="title-input"
+        {...newSourceForm.inputProps.title}
+        transition:persist
+      />
+      {formResult?.fieldErrors?.title && <p>{formResult.fieldErrors.title}</p>}
     </div>
     <div>
       <label for="note-input">Note (optional)</label>
-      <input type="text" name="note" id="note-input" />
+      <input
+        id="note-input"
+        {...newSourceForm.inputProps.note}
+        transition:persist
+      />
+      {formResult?.fieldErrors?.note && <p>{formResult.fieldErrors.note}</p>}
     </div>
     <button>Add</button>
   </form>

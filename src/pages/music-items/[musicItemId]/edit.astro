@@ -1,0 +1,91 @@
+---
+import Layout from "@src/components/Layout.astro";
+import { createForm } from "simple:form";
+import { z } from "zod";
+import { db, MusicItem, eq } from "astro:db";
+import { Debug } from "astro:components";
+
+const currentUser = Astro.locals.user;
+if (!currentUser) {
+  return Astro.redirect("/auth/login");
+}
+
+const {musicItemId} = Astro.params;
+
+const [musicItem] = await db
+  .select()
+  .from(MusicItem)
+  .where(eq(MusicItem.id, musicItemId))
+  .limit(1);
+
+const musicItemUrl = `/music-items/${musicItemId}/`
+
+const editMusicItemForm = createForm({
+  url: z
+    .string()
+    .url(),
+  title: z
+    .string()
+    .min(1),
+  note: z
+    .string()
+    .optional(),
+  originalMusicItemId: z.string().optional(),
+  returnToUrl: z.string().optional().default(musicItemUrl),
+});
+
+const formResult = await Astro.locals.form.getData(editMusicItemForm);
+
+if (formResult?.data) {
+  const { url, title, note, originalMusicItemId, returnToUrl } = formResult.data;
+
+  await db
+    .update(MusicItem)
+    .set({
+      url,
+      title,
+      note,
+    })
+    .where(eq(MusicItem.id, musicItemId));
+
+  const returnUrl = new URL(returnToUrl, Astro.url.origin);
+
+  returnUrl.searchParams.set("message", "Edited music item");
+
+  return Astro.redirect(returnUrl);
+}
+
+const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" },
+  {title: musicItem.title, url: `/music-items/${musicItem.id}/`  }
+];
+---
+
+<Layout title="📝 Edit music item" {breadcrumbs}>
+  {formResult && <Debug {formResult} />}
+
+  <form method="POST">
+    <label for="url-input">URL</label>
+    <input
+      id="url-input"
+      {...editMusicItemForm.inputProps.url}
+      value={musicItem.url}
+      autofocus
+    />
+    {formResult?.fieldErrors?.url && <p>{formResult.fieldErrors.url}</p>}
+
+    <label for="title-input">Title</label>
+    <input
+      id="title-input"
+      {...editMusicItemForm.inputProps.title}
+      value={musicItem.title}
+    />
+    {formResult?.fieldErrors?.title && <p>{formResult.fieldErrors.title}</p>}
+    <label for="note-input">Note (optional)</label>
+    <input
+      id="note-input"
+      {...editMusicItemForm.inputProps.note}
+      value={musicItem.note}
+    />
+    <button>Update</button>
+  </form>
+</Layout>

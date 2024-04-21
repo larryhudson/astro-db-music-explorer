@@ -1,0 +1,24 @@
+<button id="debug-switch-button" transition:persist
+  >Hide todos and debugs</button
+>
+
+<script>
+  const debugSwitchButton = document.getElementById("debug-switch-button");
+  const switchTextWhenVisible = "Hide todos and debugs";
+  const switchTextWhenHidden = "Show todos and debugs";
+
+  debugSwitchButton.addEventListener("click", function (event) {
+    document.documentElement.classList.toggle("hide-debugs");
+    if (document.documentElement.classList.contains("hide-debugs")) {
+      debugSwitchButton.textContent = switchTextWhenHidden;
+    } else {
+      debugSwitchButton.textContent = switchTextWhenVisible;
+    }
+  });
+</script>
+
+<style>
+  #debug-switch-button {
+    font-size: var(--step--2);
+  }
+</style>

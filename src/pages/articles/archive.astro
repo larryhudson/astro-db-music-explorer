@@ -1,0 +1,44 @@
+---
+import Layout from "@src/components/Layout.astro";
+import ListGrid from "@src/components/ListGrid.astro";
+
+import { db, Article, User, eq, and } from "astro:db";
+import { Debug } from "astro:components";
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+const archivedArticles = await db
+  .select()
+  .from(Article)
+  .where(
+    and(eq(Article.userId, currentUser.id), eq(Article.status, "archived")),
+  );
+
+const breadcrumbs = [{ title: "💬 Articles", url: "/articles/" }];
+---
+
+<Layout title="📁 Articles archive" {breadcrumbs}>
+  <p>This is where articles go when you archive them.</p>
+  {
+    archivedArticles.length === 0 && (
+      <p>You haven't archived any articles yet.</p>
+    )
+  }
+
+  {
+    archivedArticles.length > 0 && (
+      <ListGrid
+        items={archivedArticles}
+        getItemUrl={(article) => `/articles/${article.id}/`}
+        returnUrl={Astro.url.pathname}
+        actions={[{ label: "Unarchive", value: "unarchive" }]}
+      />
+    )
+  }
+
+  <p><a href="/articles/">Back to your articles</a></p>
+</Layout>

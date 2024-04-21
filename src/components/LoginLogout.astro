@@ -4,21 +4,36 @@ const user = Astro.locals.user;
 
 {
   user ? (
-    <div>
+    <div class="login-logout-container">
       <p>Logged in as {user.username}.</p>
       <form method="POST" action="/auth/logout">
         <button>Log out</button>
       </form>
     </div>
   ) : (
-    <div>
+    <div class="login-logout-container">
       <p>You are not logged in.</p>
-      <p>
-        <a href="/auth/login">Log in</a>
-      </p>
-      <p>
-        <a href="/auth/register">Register</a>
-      </p>
+      <div class="actions-group">
+        <a class="button" href="/auth/login">
+          Log in
+        </a>
+        <a class="button" href="/auth/register">
+          Register
+        </a>
+      </div>
     </div>
   )
 }
+
+<style>
+  .login-logout-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    font-size: var(--step--1);
+  }
+
+  p {
+    margin: 0;
+  }
+</style>

@@ -2,15 +2,19 @@
 const navItems = [
   {
     url: "/dashboard/",
-    title: "Dashboard",
+    title: "🏠 Dashboard",
   },
   {
-    url: "/bookmarks/",
-    title: "Bookmarks",
+    url: "/articles/",
+    title: "💬 Articles",
+  },
+  {
+    url: "/music-items/",
+    title: "🎵 Music items",
   },
   {
     url: "/sources/",
-    title: "Sources",
+    title: "📖 Sources",
   },
 ];
 
@@ -24,6 +28,7 @@ console.log({ currentUrl });
       navItems.map((item) => (
         <li>
           <a
+            class="button"
             href={item.url}
             aria-current={currentUrl.startsWith(item.url) ? "page" : undefined}
           >
@@ -41,16 +46,14 @@ console.log({ currentUrl });
     padding-left: 0;
 
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
-  }
 
-  nav ul a {
-    padding: 0.5rem 1rem;
-    border: 1px solid black;
-    text-decoration: none;
+    margin: 0;
   }
 
   nav ul a[aria-current] {
-    background-color: yellow;
+    border-width: 2px;
+    background-color: var(--color-accent-glare);
   }
 </style>

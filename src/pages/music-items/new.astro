@@ -1,0 +1,408 @@
+---
+import Layout from "@src/components/Layout.astro";
+import { createForm } from "simple:form";
+import { z } from "zod";
+import {
+  db,
+  MusicItem,
+  Article,
+  MusicItemArticle,
+  Tag,
+  MusicItemTag,
+  eq,
+  and,
+  inArray,
+} from "astro:db";
+import { Debug } from "astro:components";
+import slugify from "@sindresorhus/slugify";
+import TODO from "@src/components/TODO.astro";
+
+const currentUser = Astro.locals.user;
+if (!currentUser) {
+  return Astro.redirect("/auth/login");
+}
+
+const originalMusicItemId = Astro.url.searchParams.get(
+  "original-music-item-id",
+);
+
+let originalMusicItem;
+
+if (originalMusicItemId) {
+  [originalMusicItem] = await db
+    .select()
+    .from(MusicItem)
+    .where(eq(MusicItem.id, originalMusicItemId))
+    .limit(1);
+}
+
+const articleIdStr = Astro.url.searchParams.get("article-id");
+const articleId = articleIdStr && parseInt(articleIdStr, 10);
+
+let article;
+
+if (articleId) {
+  [article] = await db
+    .select()
+    .from(Article)
+    .where(and(eq(Article.id, articleId), eq(Article.userId, currentUser.id)))
+    .limit(1);
+}
+
+const returnToUrl = Astro.url.searchParams.get("return-to-url");
+
+const defaultTitle = originalMusicItem?.title || "";
+const defaultUrl = originalMusicItem?.url || "";
+const defaultNote = originalMusicItem?.note || "";
+
+const newMusicItemForm = createForm({
+  url: z.string().url(),
+  title: z.string().min(1),
+  note: z.string().optional(),
+  originalMusicItemId: z.string().optional(),
+  articleId: z.number().optional(),
+  sourceId: z.string().optional(),
+  returnToUrl: z.string().optional().default("/music-items/"),
+  chosenTags: z.array(z.string()).default([]),
+});
+
+const formResult = await Astro.locals.form.getData(newMusicItemForm);
+
+if (formResult?.data) {
+  const {
+    url,
+    title,
+    note,
+    originalMusicItemId,
+    returnToUrl,
+    articleId,
+    chosenTags,
+  } = formResult.data;
+
+  console.log({ chosenTags });
+
+  const createdMusicItem = await db.insert(MusicItem).values({
+    url,
+    title,
+    note,
+    userId: currentUser.id,
+    originalMusicItemId,
+  });
+
+  const createdMusicItemId = createdMusicItem.lastInsertRowid;
+
+  if (articleId) {
+    // double check the article exists and belongs to user
+    const [article] = await db
+      .select()
+      .from(Article)
+      .where(
+        and(eq(Article.id, articleId), eq(Article.userId, currentUser.id)),
+      );
+
+    if (!article) {
+      return Astro.error(404, "Article not found");
+    }
+
+    await db.insert(MusicItemArticle).values({
+      musicItemId: createdMusicItemId,
+      articleId: article.id,
+    });
+  }
+
+  if (chosenTags.length > 0) {
+    const existingTags = await db
+      .select()
+      .from(Tag)
+      .where(inArray(Tag.name, chosenTags));
+
+    console.log({ existingTags });
+
+    const existingTagSlugs = existingTags.map((tag) => tag.slug);
+
+    const tagsToCreate = chosenTags.filter(
+      (tagName) =>
+        !existingTags.some(
+          (tag) => tag.name.toLowerCase() === tagName.toLowerCase(),
+        ),
+    );
+
+    const tagInsertQueries = tagsToCreate.map((tagName) => {
+      const tagSlug = slugify(tagName);
+      return db
+        .insert(Tag)
+        .values({
+          name: tagName,
+          slug: tagSlug,
+        })
+        .returning();
+    });
+
+    let createdTagSlugs = [];
+
+    if (tagInsertQueries.length > 0) {
+      createdTagSlugs = await db
+        .batch(tagInsertQueries)
+        .then((resultsArrays) =>
+          resultsArrays.map(([createdTag]) => createdTag.slug),
+        );
+    }
+
+    const tagSlugs = [...existingTagSlugs, ...createdTagSlugs];
+
+    const musicItemTagInsertQueries = tagSlugs.map((tagSlug) => {
+      return db.insert(MusicItemTag).values({
+        tagSlug,
+        musicItemId: createdMusicItemId,
+      });
+    });
+
+    await db.batch(musicItemTagInsertQueries);
+  }
+
+  const returnUrl = new URL(returnToUrl, Astro.url.origin);
+
+  returnUrl.searchParams.set("message", "Created music item");
+
+  return Astro.redirect(returnUrl);
+}
+
+const spotifyToken = await Astro.locals.getSpotifyToken();
+
+const tags = await db.select().from(Tag);
+
+
+const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
+---
+
+<Layout title="➕ Add a new music item" {breadcrumbs}>
+  {formResult && <Debug {formResult} />}
+
+  {
+    spotifyToken ? (
+      <form id="spotify-url-lookup" method="POST">
+        <TODO>
+          There's a chance the Spotify token is expired. I think we can handle
+          that in the middleware - check the expiry date and refresh it if
+          needed
+        </TODO>
+        <label for="spotify-lookup-input">Search query or URL</label>
+        <input type="text" id="spotify-lookup-input" />
+
+        <fieldset>
+          <legend>Search type</legend>
+          <div class="actions-group">
+            <label>
+              <input type="radio" name="spotify-search-type" value="artist" />
+              Artists
+            </label>
+
+            <label>
+              <input type="radio" name="spotify-search-type" value="album" />
+              Albums
+            </label>
+
+            <label>
+              <input type="radio" name="spotify-search-type" value="track" />
+              Tracks
+            </label>
+          </div>
+        </fieldset>
+
+        <button name="form-action" value="spotify-lookup">
+          Search
+        </button>
+      </form>
+    ) : (
+      <p>
+        You can{" "}
+        <a
+          href={`/auth/spotify/?return-to-url=${encodeURIComponent(Astro.url.pathname)}`}
+        >
+          login with Spotify
+        </a>{" "}
+        to be able to look up Spotify items quickly.
+      </p>
+    )
+  }
+
+  <form method="POST" id="create-music-item-form">
+    {
+      originalMusicItemId && (
+        <input
+          type="hidden"
+          name="original-music-item-id"
+          value={originalMusicItemId}
+        />
+      )
+    }
+    <input type="hidden" name="articleId" value={article?.id || ""} />
+    {
+      article && (
+        <p>
+          Adding music item to article:{" "}
+          <a href={article.url} target="_blank">
+            {article.title}
+          </a>{" "}
+          (click to open in new tab)
+        </p>
+      )
+    }
+    {
+      returnToUrl && (
+        <input type="hidden" name="return-to-url" value={returnToUrl} />
+      )
+    }
+    <label for="url-input">URL</label>
+    <input
+      id="url-input"
+      {...newMusicItemForm.inputProps.url}
+      value={defaultUrl}
+      autofocus
+    />
+    {formResult?.fieldErrors?.url && <p>{formResult.fieldErrors.url}</p>}
+
+    <label for="title-input">Title</label>
+    <input
+      id="title-input"
+      {...newMusicItemForm.inputProps.title}
+      value={defaultTitle}
+    />
+    {formResult?.fieldErrors?.title && <p>{formResult.fieldErrors.title}</p>}
+    <label for="note-input">Note (optional)</label>
+    <input
+      id="note-input"
+      {...newMusicItemForm.inputProps.note}
+      value={defaultNote}
+    />
+
+    <details>
+      <summary>Add tags</summary>
+      <div>
+        <TODO>Currently these tags are the tags for all users - should it only be the tags that the current user has created themselves? Might be a bit of a privacy issue if all users can see all tags...</TODO>
+        <datalist id="existing-tags">
+          {tags.map((tag) => <option value={tag.name} />)}
+        </datalist>
+        <label for="new-tag-input">Tag</label>
+        <input id="new-tag-input" list="existing-tags" type="text" />
+        <button type="button" id="add-tag-button">Add tag</button>
+        <span id="tag-list-error"></span>
+
+        <ul id="selected-tags-list"></ul>
+      </div>
+    </details>
+
+    <button>Save</button>
+    <button name="return-to-url" value="/music-items/new"
+      >Save and add another</button
+    >
+    <TODO
+      >the 'save and add another' button is not working when you're adding a
+      music item to an article</TODO
+    >
+  </form>
+</Layout>
+
+<script>
+  document.addEventListener("astro:page-load", function() {
+
+  // when the 'spotify-url-lookup' form is submitted, fetch the URL and title
+  const spotifyLookupForm = document.getElementById("spotify-url-lookup");
+  spotifyLookupForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const lookupInput = document.getElementById("spotify-lookup-input");
+    const q = lookupInput.value;
+
+    const searchType = document.querySelector(
+      'input[name="spotify-search-type"]:checked',
+    )?.value;
+
+    const lookupUrl = new URL("/api/spotify-lookup", window.location.origin);
+    lookupUrl.searchParams.set("q", q);
+    lookupUrl.searchParams.set("type", searchType);
+
+    const response = await fetch(lookupUrl);
+    const data = await response.json();
+    document.getElementById("url-input").value = data.url;
+    document.getElementById("title-input").value = data.title;
+  });
+
+  // when the 'add-tag-form' form is submitted, create a new hidden input for the tag name
+  const createMusicItemForm = document.getElementById("create-music-item-form");
+  const selectedTagsList = document.getElementById("selected-tags-list");
+  const newTagInput = document.getElementById("new-tag-input");
+  const tagListErrorSpan = document.getElementById("tag-list-error");
+
+  function getSelectedTagNames() {
+    const tagListItems = Array.from(selectedTagsList.querySelectorAll("li"));
+    const tagNames = tagListItems.map((listItemTag) => {
+      return listItemTag.getAttribute("data-tag-name");
+    });
+
+    return tagNames;
+  }
+
+  function handleAddTag(event) {
+    event.preventDefault();
+
+    tagListErrorSpan.innerText = "";
+
+    const newTagName = newTagInput.value;
+
+    if (!newTagName) {
+      // handle error
+      tagListErrorSpan.innerText = "Tag name is required";
+      return;
+    }
+
+    const selectedTagNames = getSelectedTagNames();
+    if (selectedTagNames.includes(newTagName)) {
+      // handle error
+      tagListErrorSpan.innerText = "Tag already selected";
+      return;
+    }
+
+    const newTagHiddenInput = document.createElement("input");
+    newTagHiddenInput.setAttribute("type", "hidden");
+    newTagHiddenInput.setAttribute("name", "chosenTags");
+    newTagHiddenInput.setAttribute("value", newTagName);
+
+    createMusicItemForm.appendChild(newTagHiddenInput);
+
+    const newTagListItem = document.createElement("li");
+    newTagListItem.innerHTML = `
+      <span>${newTagName}</span>
+      <button type="button" class="remove-tag-button">Remove</button>
+    `;
+    newTagListItem.setAttribute("data-tag-name", newTagName);
+
+    selectedTagsList.appendChild(newTagListItem);
+
+    newTagInput.value = "";
+  }
+
+  const addTagButton = document.getElementById("add-tag-button");
+  addTagButton.addEventListener("click", handleAddTag);
+
+  newTagInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleAddTag(event);
+    }
+  });
+
+  selectedTagsList.addEventListener("click", function (event) {
+    if (event.target.closest(".remove-tag-button")) {
+      const listItem = event.target.closest("li");
+
+      const tagName = listItem.getAttribute("data-tag-name");
+      const tagInput = createMusicItemForm.querySelector(
+        `input[name="chosen-tags"][value="${tagName}"]`,
+      );
+
+      tagInput.remove();
+      listItem.remove();
+    }
+  });
+  });
+</script>

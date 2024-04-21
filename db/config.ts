@@ -23,6 +23,24 @@ const User = defineTable({
   }
 })
 
+const Feedback = defineTable({
+  columns: {
+    id: column.number({ primaryKey: true, autoIncrement: true }),
+    userId: column.text({ references: () => User.columns.id }),
+    feedback: column.text(),
+    pageUrl: column.text(),
+    createdAt: column.date({ default: NOW }),
+  },
+  indexes: {
+    feedbackUserId: {
+      on: ['userId'],
+    },
+    feedbackCreatedAt: {
+      on: ['createdAt'],
+    },
+  }
+});
+
 const Session = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
@@ -41,43 +59,103 @@ const SpotifyToken = defineTable({
   }
 })
 
-const Bookmark = defineTable({
+const MusicItem = defineTable({
   columns: {
     id: column.number({ primaryKey: true, autoIncrement: true }),
     userId: column.text({ references: () => User.columns.id }),
     url: column.text(),
     createdAt: column.date({ default: NOW }),
+    title: column.text(),
     note: column.text({ optional: true }),
     status: column.text({ default: 'to_check_out', enum: ['to_check_out', 'checking_out', 'archived', 'snoozed'] }),
     statusChangedAt: column.date({ default: NOW }),
     statusChangedFrom: column.text({ optional: true }),
-    originalBookmarkId: column.number({ optional: true, references: () => Bookmark.columns.id }),
-    sourceId: column.number({ optional: true, references: () => Source.columns.id })
+    originalMusicItemId: column.number({ optional: true, references: () => MusicItem.columns.id }),
+  },
+})
+
+const Article = defineTable({
+  columns: {
+    id: column.number({ primaryKey: true, autoIncrement: true }),
+    userId: column.text({ references: () => User.columns.id }),
+    url: column.text(),
+    createdAt: column.date({ default: NOW }),
+    title: column.text(),
+    originalArticleId: column.number({ optional: true, references: () => Article.columns.id }),
+    sourceId: column.number({ optional: true, references: () => Source.columns.id }),
+    note: column.text({ optional: true }),
+    status: column.text({ default: 'to_check_out', enum: ['to_read', 'read', 'archived', 'snoozed'] }),
+    statusChangedAt: column.date({ default: NOW }),
+    statusChangedFrom: column.text({ optional: true }),
   },
   indexes: {
-    bookmarkUserId: {
+    musicItemUserId: {
       on: ['userId'],
     },
-    bookmarkCreatedAt: {
+    musicItemCreatedAt: {
       on: ['createdAt'],
     },
   }
 })
 
-const BookmarkSnooze = defineTable({
+
+const MusicItemArticle = defineTable({
+  columns: {
+    musicItemId: column.number({ references: () => MusicItem.columns.id }),
+    articleId: column.number({ references: () => Article.columns.id }),
+  },
+  indexes: {
+    musicItemArticleMusicItemId: {
+      on: ['musicItemId'],
+    },
+    musicItemArticleArticleId: {
+      on: ['articleId'],
+    },
+  }
+})
+
+const MusicItemSnooze = defineTable({
   columns: {
     id: column.number({ primaryKey: true, autoIncrement: true }),
-    bookmarkId: column.number({ references: () => Bookmark.columns.id }),
+    musicItemId: column.number({ references: () => MusicItem.columns.id }),
     snoozeUntil: column.date(),
     createdAt: column.date({ default: NOW }),
     note: column.text({ optional: true }),
   },
   indexes: {
-    bookmarkSnoozeBookmarkId: {
-      on: ['bookmarkId'],
+    musicItemSnoozeMusicItemId: {
+      on: ['musicItemId'],
     },
-    bookmarkSnoozeCreatedAt: {
+    musicItemSnoozeCreatedAt: {
       on: ['createdAt'],
+    },
+  }
+})
+
+const Tag = defineTable({
+  columns: {
+    slug: column.text({ unique: true }),
+    name: column.text(),
+    createdAt: column.date({ default: NOW }),
+  },
+  indexes: {
+    tagCreatedAt: {
+      on: ['createdAt'],
+    },
+  }
+})
+
+const MusicItemTag = defineTable({
+  columns: {
+    musicItemId: column.number({ references: () => MusicItem.columns.id }),
+    tagSlug: column.text({ references: () => Tag.columns.slug }),
+  },
+  indexes: {
+    musicItemTagMusicItemId: {
+      on: ['musicItemId'],
+    },
+    musicItemTagTagSlug: {
+      on: ['tagSlug'],
     },
   }
 })
@@ -100,26 +178,6 @@ const Notification = defineTable({
     },
     notificationReadAt: {
       on: ['readAt'],
-    },
-  }
-})
-
-const QueueItem = defineTable({
-  columns: {
-    userId: column.text({ references: () => User.columns.id }),
-    spotifyUri: column.text(),
-    createdAt: column.date({ default: NOW }),
-    position: column.number(),
-  },
-  indexes: {
-    queueItemUserId: {
-      on: ['userId'],
-    },
-    queueItemCreatedAt: {
-      on: ['createdAt'],
-    },
-    queueItemPosition: {
-      on: ['position'],
     },
   }
 })
@@ -174,7 +232,7 @@ const Source = defineTable({
   columns: {
     id: column.number({ primaryKey: true, autoIncrement: true }),
     userId: column.text({ references: () => User.columns.id }),
-    name: column.text(),
+    title: column.text(),
     url: column.text(),
     note: column.text({ optional: true }),
     createdAt: column.date({ default: NOW }),
@@ -186,18 +244,39 @@ const Source = defineTable({
   }
 })
 
+const SourceTag = defineTable({
+  columns: {
+    sourceId: column.number({ references: () => Source.columns.id }),
+    tagSlug: column.text({ references: () => Tag.columns.slug }),
+  },
+  indexes: {
+    sourceTagSourceId: {
+      on: ['sourceId'],
+    },
+    sourceTagTagSlug: {
+      on: ['tagSlug'],
+    },
+  }
+})
+
+
 // https://astro.build/db/config
 export default defineDb({
   tables: {
     User,
+    Feedback,
     Session,
-    Bookmark,
-    BookmarkSnooze,
+    Article,
+    MusicItem,
+    MusicItemArticle,
+    MusicItemSnooze,
     Notification,
-    QueueItem,
     FriendRequest,
     SpotifyToken,
     Friendship,
-    Source
+    Source,
+    Tag,
+    MusicItemTag,
+    SourceTag,
   }
 });

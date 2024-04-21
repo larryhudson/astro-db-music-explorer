@@ -1,0 +1,109 @@
+---
+import { formatDistanceToNow } from "date-fns";
+const { items, getItemUrl, actions, id, returnUrl } = Astro.props;
+const idSelector = id ? `#${id}` : undefined;
+console.log({ id });
+
+function getDistanceToNow(date) {
+  return formatDistanceToNow(new Date(date), { addSuffix: true });
+}
+---
+
+<table {id}>
+  <thead>
+    <tr>
+      <th scope="col">Title</th>
+      <th scope="col">Created</th>
+      <th scope="col">Note</th>
+      <th scope="col">Actions</th>
+    </tr>
+    <tbody>
+      {
+        items.map((item: any) => (
+          <tr>
+            <th scope="row">
+              <p>
+                <a href={getItemUrl(item)}>{item.title || item.url}</a>
+                <a
+                  href={item.url}
+                  target="_blank"
+                  class="button"
+                  style="margin-left: 0.5rem; font-weight: normal"
+                >
+                  Open ↗
+                </a>
+              </p>
+            </th>
+            <td>
+              <p>{getDistanceToNow(item.createdAt)}</p>
+            </td>
+            <td>
+              <p>{item.note}</p>
+            </td>
+            <td>
+              <form
+                method="POST"
+                class="actions-group"
+                action={getItemUrl(item)}
+              >
+                <input type="hidden" name="return-to-url" value={returnUrl} />
+
+                {actions.map((action: any) => (
+                  <button
+                    name="form-action"
+                    value={action.value}
+                    data-confirm-message={action.confirm || undefined}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </form>
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </thead>
+
+  <style>
+    table p {
+      margin: 0;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    th,
+    td {
+      border: 1px solid var(--color-accent);
+      padding: var(--space-2xs) var(--space-xs);
+    }
+    ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-s);
+      list-style: none;
+      padding-left: 0;
+    }
+
+    ul > li {
+      flex: 1 1 12rem;
+      border: 1px solid var(--color-accent);
+      border-radius: 10px;
+      padding: var(--space-s);
+    }
+  </style>
+
+  <script>
+    const buttonsWithConfirm = document.querySelectorAll(
+      "button[data-confirm-message]",
+    );
+
+    buttonsWithConfirm.forEach((button) => {
+      button.addEventListener("click", (event) => {
+        if (!confirm(button.dataset.confirmMessage)) {
+          event.preventDefault();
+        }
+      });
+    });
+  </script>
+</table>

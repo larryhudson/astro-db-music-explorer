@@ -1,0 +1,88 @@
+---
+import Layout from "@src/components/Layout.astro";
+import ListGrid from "@src/components/ListGrid.astro";
+import ListTable from "@src/components/ListTable.astro";
+import NextPrev from "@src/components/NextPrev.astro";
+import TODO from "@src/components/TODO.astro";
+
+import { db, Tag, MusicItem, MusicItemTag, eq, gt, lt, and, isNull, NOW } from "astro:db";
+import { Debug } from "astro:components";
+
+let statusMessage;
+
+const currentUser = Astro.locals.user;
+
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+const tagSlug = Astro.params.tagSlug;
+
+const [tag] = await db.select().from(Tag).where(eq(Tag.slug, tagSlug)).limit(1);
+
+if (!tag) {
+    return new Response("Could not find tag", {status: 404});
+}
+
+// Get all the musicItem data for the current user in order
+const userMusicItemTags = await db
+  .select()
+  .from(MusicItemTag)
+  .leftJoin(MusicItem, eq(MusicItem.id, MusicItemTag.musicItemId))
+  .where(
+		and(
+			eq(MusicItemTag.tagSlug, tagSlug),
+			eq(MusicItem.userId, currentUser.id)
+)
+	)
+  .orderBy(MusicItemTag.musicItemId);
+
+const musicItems = userMusicItemTags.map(musicItemTag => musicItemTag.MusicItem);
+---
+
+<Layout title={`Tag: ${tag.name}`}>
+  {statusMessage && <p>{statusMessage}</p>}
+
+	<h2>Music items with this tag</h2>
+
+  {
+    musicItems.length > 0 && (
+      <ListTable
+        items={musicItems}
+        getItemUrl={(musicItem: any) => `/music-items/${musicItem.id}/`}
+        id="music-items"
+        returnUrl={Astro.url.pathname}
+        actions={[
+          { value: "mark_as_done", label: "Mark as done" },
+          {
+            value: "delete",
+            label: "Delete",
+            confirm: "Are you sure you want to delete this musicItem?",
+          },
+          { value: "archive", label: "Archive" },
+          { value: "snooze", label: "Snooze" },
+        ]}
+      />
+    )
+  }
+
+	<Debug {tag} />
+
+<Debug {userMusicItemTags} />
+
+</Layout>
+
+<style>
+  .next-prev {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .next-prev a {
+    display: block;
+    padding: 1rem;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    text-decoration: none;
+      }
+</style>

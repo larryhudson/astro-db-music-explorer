@@ -1,9 +1,9 @@
 ---
 import Layout from "@src/components/Layout.astro";
-import ListGrid from "@src/components/ListGrid.astro";
 import NextPrev from "@src/components/NextPrev.astro";
+import TODO from "@src/components/TODO.astro";
 
-import { db, Bookmark, Source, eq, gt, lt, and, isNull, NOW } from "astro:db";
+import { db, Article, Source, eq, gt, lt, and, isNull, NOW } from "astro:db";
 import { Debug } from "astro:components";
 
 let statusMessage;
@@ -37,37 +37,74 @@ const totalSources = userSources.length;
 
 const prevSource = userSources[currentSourceIndex - 1] || null;
 const nextSource = userSources[currentSourceIndex + 1] || null;
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const formAction = formData.get("form-action");
+
+  if (formAction === "delete") {
+    await db.update(Article).set({sourceId: null}).where(
+      and(
+        eq(
+          Article.sourceId, sourceId
+        ),
+        eq(
+          Article.userId, currentUser.id
+        )
+      )
+    );
+    await db
+      .delete(Source)
+      .where(and(eq(Source.id, sourceId), eq(Source.userId, currentUser.id)));
+    statusMessage = "Source deleted.";
+    const redirectUrl = new URL("/sources/", Astro.url.origin);
+    redirectUrl.searchParams.set("message", statusMessage);
+    return Astro.redirect(redirectUrl);
+  }
+}
+
+const relatedArticles = await db.select().from(Article).where(and(eq(Article.userId, currentUser.id), eq(Article.sourceId, source.id)));
+
+
+const newArticleUrl = new URL("/articles/new", Astro.request.url);
+newArticleUrl.searchParams.set("source-id", source.id);
+newArticleUrl.searchParams.set("return-to-url", Astro.url.pathname);
+
+const breadcrumbs = [{title: "📖 Sources", url: "/sources/"}]
 ---
 
-<Layout title={`Source: ${source.name}`}>
+<Layout title={source.title} {breadcrumbs}>
   {statusMessage && <p>{statusMessage}</p>}
 
   <NextPrev
-    prev={prevSource && {url: `/sources/${prevSource.id}`, label: `Previous source: ${prevSource.name}`}}
-    next={nextSource && {url: `/sources/${nextSource.id}`, label: `Next source: ${nextSource.name}`}}
+    prev={prevSource && {url: `/sources/${prevSource.id}`, label: `Previous source: ${prevSource.title}`}}
+    next={nextSource && {url: `/sources/${nextSource.id}`, label: `Next source: ${nextSource.title}`}}
     current={`Source ${currentSourceNum} of ${totalSources}`}
   />
 
-  <iframe src={source.url} width="100%" height="500px" />
+  <TODO>Move the code for 'actions' (eg. edit, delete) to this page, and then move the action buttons here</TODO>
 
-  <h2>Add a new bookmark from this source</h2>
-  <form method="POST" action="/bookmarks/new">
-    <input type="hidden" name="source-id" value={source.id} />
-    <label for="url-input">URL</label>
-    <input type="text" name="url" id="url-input" required="" />
+  <p><a href={source.url} target="_blank">Open {source.title} in a new tab</a></p>
 
-    <label for="note-input">Note</label>
-    <input type="text" name="note" id="note-input" />
+  <h2>Articles for this source</h2>
 
-    <input type="hidden" name="return-to-url" value={Astro.url.pathname} />
+  <TODO>show more information about the articles, maybe in table view?</TODO>
 
-    <button>Add bookmark</button>
-      
-    </form>
+{relatedArticles.length === 0 && (<p>No articles for this source yet.</p>)}
+
+{relatedArticles.length > 0 && (
+<ul>
+{relatedArticles.map((article) => (
+  <li><a href={`/articles/${article.id}`}>{article.title}</a></li>
+))}
+</ul>
+)}
+
+  <p><a class="button" href={newArticleUrl}>➕ Add new article for this source</a></p>
 
   <NextPrev
-    prev={prevSource && {url: `/sources/${prevSource.id}`, label: `Previous source: ${prevSource.name}`}}
-    next={nextSource && {url: `/sources/${nextSource.id}`, label: `Next source: ${nextSource.name}`}}
+    prev={prevSource && {url: `/sources/${prevSource.id}`, label: `Previous source: ${prevSource.title}`}}
+    next={nextSource && {url: `/sources/${nextSource.id}`, label: `Next source: ${nextSource.title}`}}
     current={`Source ${currentSourceNum} of ${totalSources}`}
   />
 

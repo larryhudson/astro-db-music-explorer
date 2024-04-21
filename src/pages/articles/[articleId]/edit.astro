@@ -1,0 +1,88 @@
+---
+import Layout from "@src/components/Layout.astro";
+import { createForm, validateForm } from "simple:form";
+import { z } from "zod";
+import { db, Article, eq } from "astro:db";
+import { Debug } from "astro:components";
+
+const currentUser = Astro.locals.user;
+if (!currentUser) {
+  return Astro.redirect("/auth/login");
+}
+
+const articleId = Astro.params.articleId;
+
+const [article] = await db
+    .select()
+    .from(Article)
+    .where(eq(Article.id, articleId))
+    .limit(1);
+
+const articleUrl = `/articles/${articleId}/`
+
+const returnUrl = Astro.url.searchParams.get("return-to-url");
+
+console.log({article});
+
+const editArticleForm = createForm({
+  url: z
+    .string()
+    .url(),
+  title: z
+    .string()
+    .min(1),
+  note: z
+    .string()
+    .optional(),
+  originalArticleId: z.string().optional(),
+  returnToUrl: z.string().optional().default(articleUrl),
+});
+
+const formResult = await Astro.locals.form.getData(editArticleForm);
+
+if (formResult?.data) {
+  const { url, title, note, originalArticleId, returnToUrl } = formResult.data;
+
+  await db.update(Article)
+    .set({
+      url,
+      title,
+      note,
+    })
+    .where(eq(Article.id, articleId));
+
+  const returnUrl = new URL(returnToUrl, Astro.url.origin);
+
+  returnUrl.searchParams.set("message", "Edited article");
+
+  return Astro.redirect(returnUrl);
+}
+
+const breadcrumbs = [
+  { title: "💬 Articles", url: "/articles/"},
+  {title: article.title, url: `/articles/${article.id}/`  }
+];
+---
+
+<Layout title="📝 Edit article" {breadcrumbs}>
+  {formResult && <Debug {formResult} />}
+
+  <form method="POST">
+    <label for="url-input">URL</label>
+    <input id="url-input" {...editArticleForm.inputProps.url} value={article.url} autofocus />
+    {formResult?.fieldErrors?.url && <p>{formResult.fieldErrors.url}</p>}
+
+    <label for="title-input">Title</label>
+    <input id="title-input" {...editArticleForm.inputProps.title} value={article.title} />
+    {formResult?.fieldErrors?.title && <p>{formResult.fieldErrors.title}</p>}
+
+    <label for="note-input">Note (optional)</label>
+    <input id="note-input" {...editArticleForm.inputProps.note} value={article.note} />
+    {formResult?.fieldErrors?.note && <p>{formResult.fieldErrors.note}</p>}
+
+    <input type="hidden" name="returnToUrl" value={returnUrl} />
+
+    <button>Save</button>
+    <button name="returnToUrl" value="/articles/new">Save and add another</button>
+  </form>
+</Layout>

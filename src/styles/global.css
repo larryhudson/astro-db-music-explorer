@@ -32,10 +32,15 @@
   --space-m-l: clamp(1.5rem, 0.9783rem + 2.6087vi, 3rem);
   --space-l-xl: clamp(2rem, 1.1304rem + 4.3478vi, 4.5rem);
   --space-xl-2xl: clamp(3rem, 1.9565rem + 5.2174vi, 6rem);
-  --space-2xl-3xl: clamp(4rem, 2.2609rem + 8.6957vi, 9rem);
 
   /* Custom pairs */
   --space-s-l: clamp(1rem, 0.3043rem + 3.4783vi, 3rem);
+}
+
+:root {
+  --color-accent: hsla(270, 50%, 40%, 1);
+  --color-accent-glare: hsla(270, 50%, 90%, 1);
+  --color-on-accent: white;
 }
 
 html {
@@ -50,9 +55,97 @@ body {
   color: var(--color-text);
   max-width: 60rem;
   margin: 0 auto;
-  padding: var(--space-m);
+  padding: var(--space-xs) var(--space-m);
 }
 
 h1 {
-  font-size: var(--step-4);
+  font-size: var(--step-2);
+  margin-top: var(--space-s);
+}
+
+h2 {
+  font-size: var(--step-1);
+  margin-top: var(--space-m);
+}
+
+h3 {
+  font-size: var(--step-0);
+  margin-top: var(--space-m);
+}
+
+/* reset button styles */
+button,
+a.button {
+  all: unset;
+}
+
+button,
+a.button {
+  border: 1px solid var(--color-accent);
+  padding: var(--space-3xs) var(--space-2xs);
+  border-radius: 10px;
+  display: inline-block;
+}
+
+button:hover,
+a.button:hover {
+  color: var(--color-accent);
+  background-color: var(--color-accent-glare);
+  cursor: pointer;
+}
+
+.actions-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: 1rem;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+fieldset {
+  border-color: var(--color-accent);
+}
+
+details {
+  border: 2px solid var(--color-accent);
+  border-radius: 10px;
+  background-color: var(--color-accent-glare);
+  padding: var(--space-2xs);
+  margin-bottom: 1rem;
+}
+
+:focus {
+  outline: 2px dashed var(--color-accent);
+  outline-offset: 2px;
+}
+
+form label {
+  display: block;
+  margin-top: var(--space-xs);
+  font-weight: bold;
+}
+
+form input[type="text"],
+form input[type="password"],
+form input[type="email"],
+form input:not([type]),
+textarea {
+  width: 100%;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+html.hide-debugs .todo,
+html.hide-debugs .astro-debug {
+  display: none;
+}
+
+.pill-list {
+  list-style: none;
+  padding-left: 0;
+  display: flex;
+  gap: 0.5rem;
 }

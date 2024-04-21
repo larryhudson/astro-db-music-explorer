@@ -1,4 +1,4 @@
-import { db, User, Bookmark, FriendRequest, Friendship, Source } from 'astro:db';
+import { db, User, Article, FriendRequest, Friendship, Source, MusicItem } from 'astro:db';
 import { generateId } from "lucia";
 import { Argon2id } from "oslo/password";
 import { validateUsername, validatePassword } from "@src/utils/auth";
@@ -94,71 +94,104 @@ async function createExampleFriendRequest({ fromUserId, toUserId, isAccepted }) 
 	return friendRequestId;
 }
 
-async function createExampleBookmarks(adminUserId: string, friendUserId: string) {
+async function createExampleArticles(adminUserId: string, friendUserId: string) {
 
-	const adminBookmarks = [
-		{ url: "https://open.spotify.com/album/1KeJzjoh4vHrJif6BsYKRg", note: "The Greater Wings by Julie Byrne. I loved her last album but haven't given this much of a shot" },
-		{ url: "https://open.spotify.com/album/1MnXimslhsID4KeJelVahi", note: "Second album by Power. I never got around to listening to this" },
-		{ url: "https://open.spotify.com/album/2n3HUMLmNl0Cm2atVwWSK6", note: "New album by Waxahatchee. Features MJ Lenderman on a few songs" },
-		{ url: "https://open.spotify.com/album/5ROzqM7rbMYoKbQIw4i7fp", note: "New album by Mannequin Pussy. Has great reviews and I like a couple of the singles" },
-		{ url: "https://open.spotify.com/album/36z8ptLj0Dag5rxBmwvFxe", note: "New album By Hannah Frances. Liam likes this one." },
-		{ url: "https://open.spotify.com/album/3x7dU12xab8PhGkRQksx0h", note: "Band called Clever - punk band from Brisbane - showed up in similar artists for Power." },
-		{ url: "https://open.spotify.com/album/1rDjHlur6uZheIHpBdmLEF", note: "Latest album by Romare - I listened to this once and liked the sound of it." },
-		{ url: "https://open.spotify.com/artist/6sM2JCBjZprP7JLMTZZSxX", note: "American band called 'Hum' - recommended by Torquay record store owner." },
-		{ url: "https://open.spotify.com/album/07h9Qsx40cCp1h0ykxuqU1", note: "New album by Ratboys - was number 1 in Treble Zine's top albums of 2023" },
-		{ url: "https://youtu.be/52CZVfiiMpY?si=_3wQLlE9d0ZgxUoU", note: "Mdou Moctar on KEXP" },
-		{ url: "https://open.spotify.com/album/3aoNtxk8uktrh29IWrVfbn", note: "Album by Jessica Pratt. Liam likes it" },
-		{ url: "https://www.treblezine.com/chastity-belt-live-laugh-love-review/", note: "New album by Chastity Belt, Treble Zine review" },
-		{ url: "https://www.treblezine.com/faye-webster-underdressed-at-the-symphony-review/", note: "New album by Faye Webster, Treble Zine review" },
+	const adminMusicItems = [
+		{ url: "https://open.spotify.com/album/1KeJzjoh4vHrJif6BsYKRg", title: "The Greater Wings by Julie Byrne", note: "I loved her last album but haven't given this much of a shot" },
+		{ url: "https://open.spotify.com/album/1MnXimslhsID4KeJelVahi", title: "Turned On by Power", note: "Second album by Power. I never got around to listening to this" },
+		{ url: "https://open.spotify.com/album/2n3HUMLmNl0Cm2atVwWSK6", title: "Tigers Blood by Waxahatchee", note: "New album by Waxahatchee. Features MJ Lenderman on a few songs" },
+		{ url: "https://open.spotify.com/album/5ROzqM7rbMYoKbQIw4i7fp", title: "I've Got Heaven by Mannequin Pussy", note: "New album by Mannequin Pussy. Has great reviews and I like a couple of the singles" },
+		{ url: "https://open.spotify.com/album/36z8ptLj0Dag5rxBmwvFxe", title: "The Keeper of the Shepherd by Hannah Frances", note: "New album By Hannah Frances. Liam likes this one." },
+		{ url: "https://open.spotify.com/album/3x7dU12xab8PhGkRQksx0h", title: "Hangin' Egg by Clever", note: "Band called Clever - punk band from Brisbane - showed up in similar artists for Power." },
+		{ url: "https://open.spotify.com/album/1rDjHlur6uZheIHpBdmLEF", title: "Here Comes the Night by Romare", note: "Latest album by Romare - I listened to this once and liked the sound of it." },
+		{ url: "https://open.spotify.com/artist/6sM2JCBjZprP7JLMTZZSxX", title: "Artist called Hum", note: "American band called 'Hum' - recommended by Torquay record store owner." },
+		{ url: "https://open.spotify.com/album/07h9Qsx40cCp1h0ykxuqU1", title: "The Window by Ratboys", note: "New album by Ratboys - was number 1 in Treble Zine's top albums of 2023" },
+		{ url: "https://open.spotify.com/album/3aoNtxk8uktrh29IWrVfbn", title: "Quiet Signs by Jessica Pratt", note: "Album by Jessica Pratt. Liam likes it" },
 	]
 
-	const friendBookmarks = [
-		{ url: "https://open.spotify.com/album/4N8CfMDL60vLQamW30qZAE", note: "New album by Jlin. Album of the week on Treble Zine" },
-		{ url: "https://www.last.fm/user/dnsosebee", note: "Top listener of Romare - check out their other top artists" },
-		{ url: "https://www.treblezine.com/50-best-albums-of-2023/", note: "Treble Zine's top albums of 2023" },
+	const adminArticles = [
+		{ url: "https://youtu.be/52CZVfiiMpY?si=_3wQLlE9d0ZgxUoU", title: "Mdou Moctar on KEXP", note: "Mdou Moctar on KEXP" },
+		{ url: "https://www.treblezine.com/chastity-belt-live-laugh-love-review/", title: "Live Laugh Love by Chastity Belt", note: "New album by Chastity Belt, Treble Zine review" },
+		{ url: "https://www.treblezine.com/faye-webster-underdressed-at-the-symphony-review/", title: "Underdressed at the Symphony by Faye Webster", note: "New album by Faye Webster, Treble Zine review" },
 	]
 
-	const adminInsertQueries = adminBookmarks.map(bookmark => (
-		db.insert(Bookmark).values({
+	const friendMusicItems = [
+		{ url: "https://open.spotify.com/album/4N8CfMDL60vLQamW30qZAE", title: "Akoma by Jlin", note: "New album by Jlin. Album of the week on Treble Zine" },
+	]
+
+	const friendArticles = [
+		{ url: "https://www.last.fm/user/dnsosebee", title: "dnsosebee user on Last.fm", note: "Top listener of Romare - check out their other top artists" },
+		{ url: "https://www.treblezine.com/50-best-albums-of-2023/", title: "Treble Zine's top albums of 2023", note: "Treble Zine's top albums of 2023" },
+	]
+
+	const adminArticleInsertQueries = adminArticles.map(article => (
+		db.insert(Article).values({
 			userId: adminUserId,
-			url: bookmark.url,
-			note: bookmark.note,
+			url: article.url,
+			note: article.note,
+			title: article.title
 		})
 	));
 
-	const friendInsertQueries = friendBookmarks.map(bookmark => (
-		db.insert(Bookmark).values({
+
+	const adminMusicItemInsertQueries = adminMusicItems.map(musicItem => (
+		db.insert(MusicItem).values({
+			userId: adminUserId,
+			url: musicItem.url,
+			note: musicItem.note,
+			title: musicItem.title
+		})
+	));
+
+	const friendArticleInsertQueries = friendArticles.map(article => (
+		db.insert(Article).values({
 			userId: friendUserId,
-			url: bookmark.url,
-			note: bookmark.note,
+			url: article.url,
+			note: article.note,
+			title: article.title
 		})
 	));
 
-	await db.batch(adminInsertQueries);
-	await db.batch(friendInsertQueries);
+	const friendMusicItemInsertQueries = friendMusicItems.map(musicItem => (
+		db.insert(MusicItem).values({
+			userId: friendUserId,
+			url: musicItem.url,
+			note: musicItem.note,
+			title: musicItem.title
+		})
+	));
+
+	console.log("doing the admin article insert queries");
+	await db.batch(adminArticleInsertQueries);
+	console.log("doing the admin music item insert queries");
+	await db.batch(adminMusicItemInsertQueries);
+	console.log("doing the friend article insert queries");
+	await db.batch(friendArticleInsertQueries);
+	console.log("doing the friend music item insert queries");
+	await db.batch(friendMusicItemInsertQueries);
 }
 
 async function createAdminSources(adminUserId: string) {
 
 	const sources = [{
-		name: "Paste Magazine",
+		title: "Paste Magazine",
 		url: "https://www.pastemagazine.com/article-category/music",
 		note: "Seem to have good curation for alternative music"
 	},
-	{ name: "Treble Zine", url: "https://www.treblezine.com/", note: "Good reviews of new music" },
-	{ name: "NPR Music", url: "https://www.npr.org/music/", note: "Good for discovering new music" },
-	{ name: "Post-Trash", url: "http://post-trash.com/", note: "More punky stuff" },
-	{ name: "Pitchfork", url: "https://pitchfork.com/", note: "Indie reviews" },
-	{ name: "RA Mix of the Day", url: "https://ra.co/mix-of-the-day", note: "Electronic mixes" },
-	{ name: "Mixmag Music", url: "https://mixmag.net/music", note: "Electronic music news" },
-	{ name: "RA Reviews", url: "https://ra.co/music", note: "Electronic music reviews" },
-	{ name: "PopMatters", url: "https://www.popmatters.com/category/music", note: "Music reviews" },
-	{ name: "KEXP YouTube channel", url: "https://www.youtube.com/@kexp/videos", note: "Live performances" },
-	{ name: "Audiotree YouTube channel", url: "https://www.youtube.com/@audiotree/videos", note: "Like KEXP but punkier" },
-	{ name: "KCRW website", url: "https://www.kcrw.com/music", note: "Cool radio station" },
-	{ name: "Sputnikmusic", url: "https://www.sputnikmusic.com/reviews/staff/albums", note: "Nerdy music community" },
-	{ name: "Bandcamp Daily", url: "https://daily.bandcamp.com/", note: "Nice curation of indie music of different genres" },
-	{ name: "Reddit r/indieheads", url: "https://www.reddit.com/r/indieheads/", note: "Good for new music" },
+	{ title: "Treble Zine", url: "https://www.treblezine.com/", note: "Good reviews of new music" },
+	{ title: "NPR Music", url: "https://www.npr.org/music/", note: "Good for discovering new music" },
+	{ title: "Post-Trash", url: "http://post-trash.com/", note: "More punky stuff" },
+	{ title: "Pitchfork", url: "https://pitchfork.com/", note: "Indie reviews" },
+	{ title: "RA Mix of the Day", url: "https://ra.co/mix-of-the-day", note: "Electronic mixes" },
+	{ title: "Mixmag Music", url: "https://mixmag.net/music", note: "Electronic music news" },
+	{ title: "RA Reviews", url: "https://ra.co/music", note: "Electronic music reviews" },
+	{ title: "PopMatters", url: "https://www.popmatters.com/category/music", note: "Music reviews" },
+	{ title: "KEXP YouTube channel", url: "https://www.youtube.com/@kexp/videos", note: "Live performances" },
+	{ title: "Audiotree YouTube channel", url: "https://www.youtube.com/@audiotree/videos", note: "Like KEXP but punkier" },
+	{ title: "KCRW website", url: "https://www.kcrw.com/music", note: "Cool radio station" },
+	{ title: "Sputnikmusic", url: "https://www.sputnikmusic.com/reviews/staff/albums", note: "Nerdy music community" },
+	{ title: "Bandcamp Daily", url: "https://daily.bandcamp.com/", note: "Nice curation of indie music of different genres" },
+	{ title: "Reddit r/indieheads", url: "https://www.reddit.com/r/indieheads/", note: "Good for new music" },
 	];
 
 	const insertQueries = sources.map(source => (
@@ -185,7 +218,7 @@ export default async function seed() {
 	const friendRequesterUserId = await createExampleFriend({ username: "friendrequester", password: "password", email: "friendrequester@gmail.com" })
 	await createExampleFriendRequest({ fromUserId: friendRequesterUserId, toUserId: adminUserId, isAccepted: false });
 
-	await createExampleBookmarks(adminUserId, friendUserId);
+	//	await createExampleArticles(adminUserId, friendUserId);
 
-	await createAdminSources(adminUserId);
+	//	await createAdminSources(adminUserId);
 }

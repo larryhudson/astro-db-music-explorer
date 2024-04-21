@@ -1,0 +1,50 @@
+---
+const breadcrumbs = Astro.props.breadcrumbs || [];
+const title = Astro.props.title;
+
+const homeBreadcrumb = { title: "Home", url: "/" };
+
+const isHomepage = Astro.url.pathname === "/";
+
+const allBreadcrumbs = isHomepage
+  ? [homeBreadcrumb]
+  : [homeBreadcrumb, ...breadcrumbs, { title, url: Astro.url.pathname }];
+---
+
+<nav id="breadcrumbs" aria-label="Breadcrumbs">
+  <ul>
+    {
+      allBreadcrumbs.map((breadcrumb) => (
+        <li>
+          <a href={breadcrumb.url}>{breadcrumb.title}</a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<style>
+  #breadcrumbs {
+    font-size: var(--step--1);
+  }
+
+  #breadcrumbs ul {
+    list-style: none;
+    padding-left: 0;
+    display: flex;
+    gap: 1rem;
+  }
+
+  #breadcrumbs li::before {
+    content: ">";
+    margin-right: 1rem;
+  }
+
+  #breadcrumbs li:first-child::before {
+    content: "";
+  }
+
+  #breadcrumbs a {
+    text-decoration: none;
+  }
+</style>

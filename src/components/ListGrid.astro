@@ -1,18 +1,29 @@
 ---
-const { items, getItemUrl, actions } = Astro.props;
+import { formatDistanceToNow } from "date-fns";
+const { items, getItemUrl, actions, id, returnUrl } = Astro.props;
+const idSelector = id ? `#${id}` : undefined;
+console.log({ id });
+
+function getDistanceToNow(date) {
+  return formatDistanceToNow(new Date(date), { addSuffix: true });
+}
 ---
 
-<ul>
+<ul {id}>
   {
     items.map((item: any) => (
       <li>
-        <a href={getItemUrl(item)}>{item.name || item.url}</a>
+        <a href={getItemUrl(item)}>{item.title || item.url}</a>
+        <p>{getDistanceToNow(item.createdAt)}</p>
         <p>
-          <a href={item.url}>External link</a>
+          <a href={item.url} target="_blank">
+            External link
+          </a>
         </p>
         <p>{item.note}</p>
-        <form method="POST">
-          <input type="hidden" name="id" value={item.id} />
+        <form method="POST" class="actions-group" action={getItemUrl(item)}>
+          <input type="hidden" name="return-to-url" value={returnUrl} />
+
           {actions.map((action: any) => (
             <button
               name="form-action"
@@ -39,7 +50,8 @@ const { items, getItemUrl, actions } = Astro.props;
 
   ul > li {
     flex: 1 1 12rem;
-    border: 1px solid black;
+    border: 1px solid var(--color-accent);
+    border-radius: 10px;
     padding: var(--space-s);
   }
 </style>

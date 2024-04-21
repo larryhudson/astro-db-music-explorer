@@ -4,6 +4,8 @@ import { db, SpotifyToken } from "astro:db";
 const searchParams = Astro.url.searchParams;
 const hasAuthCode = searchParams.has("code");
 
+const returnUrl = searchParams.get("state") || "/dashboard/";
+
 console.log({ searchParamsString: searchParams.toString() });
 
 if (hasAuthCode) {
@@ -41,7 +43,7 @@ if (hasAuthCode) {
     userId: Astro.locals.user.id,
   });
 
-  return Astro.redirect("/dashboard");
+  return Astro.redirect(returnUrl);
 }
 ---
 

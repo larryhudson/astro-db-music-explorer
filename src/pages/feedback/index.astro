@@ -1,0 +1,49 @@
+---
+import Layout from "@src/components/Layout.astro";
+import { db, Feedback, User, eq, desc } from "astro:db";
+import { Debug } from "astro:components";
+import { formatDate } from "@src/utils/dates";
+
+const currentUser = Astro.locals.user;
+if (!currentUser) {
+  return Astro.redirect("/auth/login/");
+}
+
+if (!currentUser.isAdmin) {
+  return Astro.redirect("/dashboard/");
+}
+
+const feedbackItems = await db
+  .select()
+  .from(Feedback)
+  .innerJoin(User, eq(Feedback.userId, User.id))
+  .orderBy(desc(Feedback.createdAt));
+---
+
+<Layout title="Feedback">
+  {
+    feedbackItems.map(({ Feedback, User }) => (
+      <div class="feedback-item">
+        <h2>{formatDate(Feedback.createdAt)}</h2>
+        <p>
+          From: {User.username} ({User.email})
+        </p>
+        <p>{Feedback.feedback}</p>
+      </div>
+    ))
+  }
+  <Debug {feedbackItems} />
+</Layout>
+
+<style>
+  .feedback-item {
+    border: 2px solid var(--color-accent);
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .feedback-item h2,
+  .feedback-item p {
+    margin: 0;
+  }
+</style>
