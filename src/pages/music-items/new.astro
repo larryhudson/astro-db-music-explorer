@@ -171,7 +171,6 @@ const spotifyToken = await Astro.locals.getSpotifyToken();
 
 const tags = await db.select().from(Tag);
 
-
 const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
 ---
 
@@ -217,7 +216,7 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
       <p>
         You can{" "}
         <a
-          href={`/auth/spotify/?return-to-url=${encodeURIComponent(Astro.url.pathname)}`}
+          href={`/auth/spotify/?return-to-url=${encodeURIComponent(Astro.url.toString())}`}
         >
           login with Spotify
         </a>{" "}
@@ -279,7 +278,11 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
     <details>
       <summary>Add tags</summary>
       <div>
-        <TODO>Currently these tags are the tags for all users - should it only be the tags that the current user has created themselves? Might be a bit of a privacy issue if all users can see all tags...</TODO>
+        <TODO
+          >Currently these tags are the tags for all users - should it only be
+          the tags that the current user has created themselves? Might be a bit
+          of a privacy issue if all users can see all tags...</TODO
+        >
         <datalist id="existing-tags">
           {tags.map((tag) => <option value={tag.name} />)}
         </datalist>
@@ -304,105 +307,106 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
 </Layout>
 
 <script>
-  document.addEventListener("astro:page-load", function() {
+  document.addEventListener("astro:page-load", function () {
+    // when the 'spotify-url-lookup' form is submitted, fetch the URL and title
+    const spotifyLookupForm = document.getElementById("spotify-url-lookup");
+    spotifyLookupForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const lookupInput = document.getElementById("spotify-lookup-input");
+      const q = lookupInput.value;
 
-  // when the 'spotify-url-lookup' form is submitted, fetch the URL and title
-  const spotifyLookupForm = document.getElementById("spotify-url-lookup");
-  spotifyLookupForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const lookupInput = document.getElementById("spotify-lookup-input");
-    const q = lookupInput.value;
+      const searchType = document.querySelector(
+        'input[name="spotify-search-type"]:checked',
+      )?.value;
 
-    const searchType = document.querySelector(
-      'input[name="spotify-search-type"]:checked',
-    )?.value;
+      const lookupUrl = new URL("/api/spotify-lookup", window.location.origin);
+      lookupUrl.searchParams.set("q", q);
+      lookupUrl.searchParams.set("type", searchType);
 
-    const lookupUrl = new URL("/api/spotify-lookup", window.location.origin);
-    lookupUrl.searchParams.set("q", q);
-    lookupUrl.searchParams.set("type", searchType);
-
-    const response = await fetch(lookupUrl);
-    const data = await response.json();
-    document.getElementById("url-input").value = data.url;
-    document.getElementById("title-input").value = data.title;
-  });
-
-  // when the 'add-tag-form' form is submitted, create a new hidden input for the tag name
-  const createMusicItemForm = document.getElementById("create-music-item-form");
-  const selectedTagsList = document.getElementById("selected-tags-list");
-  const newTagInput = document.getElementById("new-tag-input");
-  const tagListErrorSpan = document.getElementById("tag-list-error");
-
-  function getSelectedTagNames() {
-    const tagListItems = Array.from(selectedTagsList.querySelectorAll("li"));
-    const tagNames = tagListItems.map((listItemTag) => {
-      return listItemTag.getAttribute("data-tag-name");
+      const response = await fetch(lookupUrl);
+      const data = await response.json();
+      document.getElementById("url-input").value = data.url;
+      document.getElementById("title-input").value = data.title;
     });
 
-    return tagNames;
-  }
+    // when the 'add-tag-form' form is submitted, create a new hidden input for the tag name
+    const createMusicItemForm = document.getElementById(
+      "create-music-item-form",
+    );
+    const selectedTagsList = document.getElementById("selected-tags-list");
+    const newTagInput = document.getElementById("new-tag-input");
+    const tagListErrorSpan = document.getElementById("tag-list-error");
 
-  function handleAddTag(event) {
-    event.preventDefault();
+    function getSelectedTagNames() {
+      const tagListItems = Array.from(selectedTagsList.querySelectorAll("li"));
+      const tagNames = tagListItems.map((listItemTag) => {
+        return listItemTag.getAttribute("data-tag-name");
+      });
 
-    tagListErrorSpan.innerText = "";
-
-    const newTagName = newTagInput.value;
-
-    if (!newTagName) {
-      // handle error
-      tagListErrorSpan.innerText = "Tag name is required";
-      return;
+      return tagNames;
     }
 
-    const selectedTagNames = getSelectedTagNames();
-    if (selectedTagNames.includes(newTagName)) {
-      // handle error
-      tagListErrorSpan.innerText = "Tag already selected";
-      return;
-    }
+    function handleAddTag(event) {
+      event.preventDefault();
 
-    const newTagHiddenInput = document.createElement("input");
-    newTagHiddenInput.setAttribute("type", "hidden");
-    newTagHiddenInput.setAttribute("name", "chosenTags");
-    newTagHiddenInput.setAttribute("value", newTagName);
+      tagListErrorSpan.innerText = "";
 
-    createMusicItemForm.appendChild(newTagHiddenInput);
+      const newTagName = newTagInput.value;
 
-    const newTagListItem = document.createElement("li");
-    newTagListItem.innerHTML = `
+      if (!newTagName) {
+        // handle error
+        tagListErrorSpan.innerText = "Tag name is required";
+        return;
+      }
+
+      const selectedTagNames = getSelectedTagNames();
+      if (selectedTagNames.includes(newTagName)) {
+        // handle error
+        tagListErrorSpan.innerText = "Tag already selected";
+        return;
+      }
+
+      const newTagHiddenInput = document.createElement("input");
+      newTagHiddenInput.setAttribute("type", "hidden");
+      newTagHiddenInput.setAttribute("name", "chosenTags");
+      newTagHiddenInput.setAttribute("value", newTagName);
+
+      createMusicItemForm.appendChild(newTagHiddenInput);
+
+      const newTagListItem = document.createElement("li");
+      newTagListItem.innerHTML = `
       <span>${newTagName}</span>
       <button type="button" class="remove-tag-button">Remove</button>
     `;
-    newTagListItem.setAttribute("data-tag-name", newTagName);
+      newTagListItem.setAttribute("data-tag-name", newTagName);
 
-    selectedTagsList.appendChild(newTagListItem);
+      selectedTagsList.appendChild(newTagListItem);
 
-    newTagInput.value = "";
-  }
-
-  const addTagButton = document.getElementById("add-tag-button");
-  addTagButton.addEventListener("click", handleAddTag);
-
-  newTagInput.addEventListener("keydown", function (event) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      handleAddTag(event);
+      newTagInput.value = "";
     }
-  });
 
-  selectedTagsList.addEventListener("click", function (event) {
-    if (event.target.closest(".remove-tag-button")) {
-      const listItem = event.target.closest("li");
+    const addTagButton = document.getElementById("add-tag-button");
+    addTagButton.addEventListener("click", handleAddTag);
 
-      const tagName = listItem.getAttribute("data-tag-name");
-      const tagInput = createMusicItemForm.querySelector(
-        `input[name="chosen-tags"][value="${tagName}"]`,
-      );
+    newTagInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleAddTag(event);
+      }
+    });
 
-      tagInput.remove();
-      listItem.remove();
-    }
-  });
+    selectedTagsList.addEventListener("click", function (event) {
+      if (event.target.closest(".remove-tag-button")) {
+        const listItem = event.target.closest("li");
+
+        const tagName = listItem.getAttribute("data-tag-name");
+        const tagInput = createMusicItemForm.querySelector(
+          `input[name="chosen-tags"][value="${tagName}"]`,
+        );
+
+        tagInput.remove();
+        listItem.remove();
+      }
+    });
   });
 </script>
