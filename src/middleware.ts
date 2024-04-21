@@ -1,7 +1,7 @@
 import { lucia } from "@src/auth";
 import { verifyRequestOrigin } from "lucia";
 import { defineMiddleware } from "astro:middleware";
-import { db, SpotifyToken, NOW, eq, and, gt } from "astro:db";
+import { db, SpotifyToken, NOW, eq, and, gt, desc } from "astro:db";
 
 export const onRequest = defineMiddleware(async (context, next) => {
 	//	if (context.request.method !== "GET") {
@@ -37,21 +37,68 @@ export const onRequest = defineMiddleware(async (context, next) => {
 		if (!user) return null;
 		const userId = user.id;
 		console.log({ userIdFromInsideGetSpotifyToken: userId })
-		const [validToken] = await db.select().from(SpotifyToken).where(
+		const [newestToken] = await db.select().from(SpotifyToken).where(
 			and(
 				eq(SpotifyToken.userId, userId),
-				gt(SpotifyToken.expiresAt, NOW),
 			)
-		).limit(1);
+		)
+			.orderBy(desc(SpotifyToken.expiresAt))
+			.limit(1);
 
-		console.log({ validToken })
+		const now = new Date();
 
-		return validToken;
+		const validToken = newestToken && newestToken.expiresAt > now;
 
-		if (!validToken) {
-			// TODO: use the refresh token?
-			return null;
+		if (validToken) {
+
+			console.log({ validToken })
+
+			return validToken;
 		}
+
+		const expiredToken = newestToken && newestToken.expiresAt < now;
+
+		if (expiredToken) {
+			const refreshToken = newestToken.refreshToken;
+
+			const spotifyTokenResponse = await fetch(
+				"https://accounts.spotify.com/api/token",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+						Authorization: `Basic ${btoa(
+							`${import.meta.env.SPOTIFY_CLIENT_ID}:${import.meta.env.SPOTIFY_CLIENT_SECRET}`,
+						)}`,
+					},
+					body: new URLSearchParams({
+						grant_type: "refresh_token",
+						refresh_token: refreshToken,
+						client_id: import.meta.env.SPOTIFY_CLIENT_ID
+					}),
+				},
+			);
+
+			const spotifyToken = await spotifyTokenResponse.json();
+
+			console.log({ spotifyToken });
+
+			if (spotifyToken.error) {
+				console.error(spotifyToken.error);
+			}
+
+			const createdToken = await db.insert(SpotifyToken).values({
+				accessToken: spotifyToken.access_token,
+				refreshToken,
+				expiresAt: new Date(Date.now() + spotifyToken.expires_in * 1000),
+				userId: context.locals.user.id,
+			}).returning();
+
+			return createdToken;
+
+		}
+
+		return null;
 	}
 	return next();
 });
