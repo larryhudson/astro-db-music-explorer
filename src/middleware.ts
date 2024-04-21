@@ -47,16 +47,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
 		const now = new Date();
 
-		const validToken = newestToken && newestToken.expiresAt > now;
+		console.log({ newestToken });
+
+		const validToken = newestToken && new Date(newestToken.expiresAt) > now;
 
 		if (validToken) {
+			console.log("Token is valid!");
 
-			console.log({ validToken })
-
-			return validToken;
+			return newestToken;
 		}
 
-		const expiredToken = newestToken && newestToken.expiresAt < now;
+		const expiredToken = newestToken && new Date(newestToken.expiresAt) < now;
 
 		if (expiredToken) {
 			const refreshToken = newestToken.refreshToken;
