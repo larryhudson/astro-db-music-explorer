@@ -165,24 +165,19 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
 
   <TODO>We should be able to write what we think about the music here. Add comments with timestamps? Or just a single text box for 'what you think' about the music?</TODO>
 
-  <h2>Actions</h2>
-
-        <form method="POST" class="actions-group">
-  <a href={musicItem.url} target="_blank" class="button">Open music item in new tab ↗</a>
-          {actions.map((action: any) => (
-            <button
-              name="form-action"
-              value={action.value}
-              data-confirm-message={action.confirm || undefined}
-            >
-              {action.label}
-            </button>
-          ))}
-        </form>
-
-  <p><a href={musicItem.url} target="_blank">Open this music item in a new tab</a></p>
-
-  <p><a href={googleUrl} target="_blank">Search Google for this music item</a></p>
+  <form method="POST" class="actions-group">
+    <a href={musicItem.url} target="_blank" class="button">Open music item in new tab ↗</a>
+    <a href={googleUrl} target="_blank">Search Google for this music item ↗</a>
+    {actions.map((action: any) => (
+    <button
+      name="form-action"
+      value={action.value}
+      data-confirm-message={action.confirm || undefined}
+    >
+      {action.label}
+    </button>
+    ))}
+  </form>
 
   <h2>Related articles</h2>
 
@@ -198,7 +193,9 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
 
   <Debug {relatedArticles} />
 
-  <p><a href={newArticleUrl}>Add new article for this music item</a></p>
+  <div class="actions-group">
+  <a href={newArticleUrl} class="button">➕ Add new article for this music item</a>
+    </div>
 
   <TODO>One thing you can't do yet, is link an existing music item to an existing article. For example, say you've already saved a music item and then you realise that it shows up on a 'best of' list that you've already added. You can't link them together yet.</TODO>
 
