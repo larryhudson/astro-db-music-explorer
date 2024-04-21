@@ -185,6 +185,11 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
           that in the middleware - check the expiry date and refresh it if
           needed
         </TODO>
+        <TODO>
+          This should be able to accept a Spotify URL (and then fetch the title
+          based on the URL) but it doesn't work that way yet. Need to implement
+          functionality
+        </TODO>
         <label for="spotify-lookup-input">Search query or URL</label>
         <input type="text" id="spotify-lookup-input" />
 
@@ -294,6 +299,12 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
         <ul id="selected-tags-list"></ul>
       </div>
     </details>
+
+    <TODO
+      >When you're adding a music item from an article and click 'save', it goes
+      back to 'music items' index, which doesn't feel right - it should go back
+      to the article</TODO
+    >
 
     <button>Save</button>
     <button name="return-to-url" value="/music-items/new"

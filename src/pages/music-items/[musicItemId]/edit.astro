@@ -1,5 +1,6 @@
 ---
 import Layout from "@src/components/Layout.astro";
+import TODO from "@src/components/TODO.astro";
 import { createForm } from "simple:form";
 import { z } from "zod";
 import { db, MusicItem, eq } from "astro:db";
@@ -86,6 +87,8 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" },
       {...editMusicItemForm.inputProps.note}
       value={musicItem.note}
     />
+
+    <TODO>Can't edit the tags after you create a music item. Need to implement.</TODO>
     <button>Update</button>
   </form>
 </Layout>

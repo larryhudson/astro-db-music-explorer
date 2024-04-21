@@ -161,7 +161,9 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
     current={`Music item ${currentMusicItemNum} of ${totalMusicItems}`}
   />
 
-  <TODO>If the user is logged in to Spotify, we should be able to look up preview URLs for the release</TODO>
+  <TODO>If the user is logged in to Spotify, and it's a Spotify URL, we should be able to look up preview URLs for the release</TODO>
+
+  <TODO>We should be able to write what we think about the music here. Add comments with timestamps? Or just a single text box for 'what you think' about the music?</TODO>
 
   <h2>Actions</h2>
 
@@ -195,6 +197,8 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
   <Debug {relatedArticles} />
 
   <p><a href={newArticleUrl}>Add new article for this music item</a></p>
+
+  <TODO>One thing you can't do yet, is link an existing music item to an existing article. For example, say you've already saved a music item and then you realise that it shows up on a 'best of' list that you've already added. You can't link them together yet.</TODO>
 
   <NextPrev
     prev={prevMusicItem && {url: `/music-items/${prevMusicItem.id}`, label: `Previous music item: ${prevMusicItem.title}`}}
