@@ -177,6 +177,9 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
 <Layout title="➕ Add a new music item" {breadcrumbs}>
   {formResult && <Debug {formResult} />}
 
+  <TODO>
+    This is encouraging Spotify but we should be able to accept Soundcloud + Bandcamp + YouTube + Apple Music links too. Maybe it's simple enough to just bring across the 'fill title from URL' functionality across from the articles section?
+    </TODO>
   {
     spotifyToken ? (
       <form id="spotify-url-lookup" method="POST">
