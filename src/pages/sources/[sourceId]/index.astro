@@ -109,9 +109,9 @@ const breadcrumbs = [{title: "📖 Sources", url: "/sources/"}]
   <p><a class="button" href={newArticleUrl}>➕ Add new article for this source</a></p>
 
   <NextPrev
-    prev={prevSource && {url: `/sources/${prevSource.id}`, label: `Previous source: ${prevSource.title}`}}
-    next={nextSource && {url: `/sources/${nextSource.id}`, label: `Next source: ${nextSource.title}`}}
-    current={`Source ${currentSourceNum} of ${totalSources}`}
+    prev={prevSource && {url: `/sources/${prevSource.id}`, label: `⬅️ ${prevSource.title}`}}
+    next={nextSource && {url: `/sources/${nextSource.id}`, label: `${nextSource.title} ➡️`}}
+    current={`${currentSourceNum} of ${totalSources}`}
   />
 
 <Debug {source} />

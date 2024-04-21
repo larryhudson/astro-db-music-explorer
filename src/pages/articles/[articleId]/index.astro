@@ -139,9 +139,9 @@ const breadcrumbs = [{ title: "💬 Articles", url: "/articles/" }];
   {statusMessage && <p>{statusMessage}</p>}
 
   <NextPrev
-    prev={prevArticle && {url: `/articles/${prevArticle.id}`, label: `Previous article: ${prevArticle.title}`}}
-    next={nextArticle && {url: `/articles/${nextArticle.id}`, label: `Next article: ${nextArticle.title}`}}
-    current={`Article ${currentArticleNum} of ${totalArticles}`}
+    prev={prevArticle && {url: `/articles/${prevArticle.id}`, label: `⬅️ ${prevArticle.title}`}}
+    next={nextArticle && {url: `/articles/${nextArticle.id}`, label: `${nextArticle.title} ➡️`}}
+    current={`${currentArticleNum} of ${totalArticles}`}
   />
 
   <h2>Actions</h2>

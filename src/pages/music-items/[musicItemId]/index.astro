@@ -156,9 +156,9 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
   {statusMessage && <p>{statusMessage}</p>}
 
   <NextPrev
-    prev={prevMusicItem && {url: `/music-items/${prevMusicItem.id}`, label: `Previous music item: ${prevMusicItem.title}`}}
-    next={nextMusicItem && {url: `/music-items/${nextMusicItem.id}`, label: `Next music item: ${nextMusicItem.title}`}}
-    current={`Music item ${currentMusicItemNum} of ${totalMusicItems}`}
+    prev={prevMusicItem && {url: `/music-items/${prevMusicItem.id}`, label: `⬅️ ${prevMusicItem.title}`}}
+    next={nextMusicItem && {url: `/music-items/${nextMusicItem.id}`, label: `${nextMusicItem.title} ➡️`}}
+    current={`${currentMusicItemNum} of ${totalMusicItems}`}
   />
 
   <TODO>If the user is logged in to Spotify, and it's a Spotify URL, we should be able to look up preview URLs for the release</TODO>
@@ -200,9 +200,9 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
   <TODO>One thing you can't do yet, is link an existing music item to an existing article. For example, say you've already saved a music item and then you realise that it shows up on a 'best of' list that you've already added. You can't link them together yet.</TODO>
 
   <NextPrev
-    prev={prevMusicItem && {url: `/music-items/${prevMusicItem.id}`, label: `Previous music item: ${prevMusicItem.title}`}}
-    next={nextMusicItem && {url: `/music-items/${nextMusicItem.id}`, label: `Next music item: ${nextMusicItem.title}`}}
-    current={`Music item ${currentMusicItemNum} of ${totalMusicItems}`}
+    prev={prevMusicItem && {url: `/music-items/${prevMusicItem.id}`, label: `⬅️ ${prevMusicItem.title}`}}
+    next={nextMusicItem && {url: `/music-items/${nextMusicItem.id}`, label: `${nextMusicItem.title} ➡️`}}
+    current={`${currentMusicItemNum} of ${totalMusicItems}`}
   />
 
 <Debug {musicItem} />
