@@ -61,16 +61,17 @@ const messageFromUrlParams = Astro.url.searchParams.get("message");
         border-radius: 10px;
         padding: 0.5rem 1rem;
       }
+
+      /* got this from here: https://css-loaders.com/classic/ */
       #loading {
         display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.8);
-        align-items: center;
-        justify-content: center;
+        animation: loadingFade 1s linear infinite alternate;
+      }
+
+      @keyframes loadingFade {
+        to {
+          opacity: 0;
+        }
       }
 
       #breadcrumbs {
