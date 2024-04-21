@@ -178,8 +178,11 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
   {formResult && <Debug {formResult} />}
 
   <TODO>
-    This is encouraging Spotify but we should be able to accept Soundcloud + Bandcamp + YouTube + Apple Music links too. Maybe it's simple enough to just bring across the 'fill title from URL' functionality across from the articles section?
-    </TODO>
+    This is encouraging Spotify but we should be able to accept Soundcloud +
+    Bandcamp + YouTube + Apple Music links too. Maybe it's simple enough to just
+    bring across the 'fill title from URL' functionality across from the
+    articles section?
+  </TODO>
   {
     spotifyToken ? (
       <form id="spotify-url-lookup" method="POST">
@@ -193,11 +196,14 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
           based on the URL) but it doesn't work that way yet. Need to implement
           functionality
         </TODO>
-        <label for="spotify-lookup-input">Search query or URL</label>
-        <input type="text" id="spotify-lookup-input" />
 
         <fieldset>
-          <legend>Search type</legend>
+          <legend>Autofill from Spotify</legend>
+          <p style="font-size: var(--step--1);">
+            You can enter a search query below to search for an artist, album or
+            track on Spotify and automatically fill in the URL below.
+          </p>
+          <label>Search type</label>
           <div class="actions-group">
             <label>
               <input type="radio" name="spotify-search-type" value="artist" />
@@ -205,7 +211,12 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
             </label>
 
             <label>
-              <input type="radio" name="spotify-search-type" value="album" />
+              <input
+                type="radio"
+                name="spotify-search-type"
+                value="album"
+                checked=""
+              />
               Albums
             </label>
 
@@ -214,11 +225,17 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
               Tracks
             </label>
           </div>
-        </fieldset>
 
-        <button name="form-action" value="spotify-lookup">
-          Autofill from Spotify
-        </button>
+          <input
+            type="text"
+            id="spotify-lookup-input"
+            value={article && article.title}
+          />
+
+          <button name="form-action" value="spotify-lookup">
+            Autofill
+          </button>
+        </fieldset>
       </form>
     ) : (
       <p>
@@ -265,6 +282,7 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
       id="url-input"
       {...newMusicItemForm.inputProps.url}
       value={defaultUrl}
+      data-fill-url-title-to="title-input"
       autofocus
     />
     {formResult?.fieldErrors?.url && <p>{formResult.fieldErrors.url}</p>}
@@ -272,9 +290,13 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
     <label for="title-input">Title</label>
     <input
       id="title-input"
+      aria-describedby="title-input-help-text"
       {...newMusicItemForm.inputProps.title}
       value={defaultTitle}
     />
+    <span class="help-text" id="title-input-help-text">
+      <em>This will be automatically filled in if you enter a URL above.</em>
+    </span>
     {formResult?.fieldErrors?.title && <p>{formResult.fieldErrors.title}</p>}
     <label for="note-input">Note (optional)</label>
     <input
@@ -424,3 +446,5 @@ const breadcrumbs = [{ title: "🎵 Music items", url: "/music-items/" }];
     });
   });
 </script>
+
+<script src="@src/scripts/fill-title-from-url.js"></script>
