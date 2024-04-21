@@ -1,5 +1,6 @@
 ---
 import { formatDistanceToNow } from "date-fns";
+import TODO from "@src/components/TODO.astro";
 const { items, getItemUrl, actions, id, returnUrl } = Astro.props;
 const idSelector = id ? `#${id}` : undefined;
 console.log({ id });
@@ -8,6 +9,9 @@ function getDistanceToNow(date) {
   return formatDistanceToNow(new Date(date), { addSuffix: true });
 }
 ---
+
+<TODO>Need to implement pagination</TODO>
+<TODO>Need to think about alternative layout for mobile view</TODO>
 
 <table {id}>
   <thead>
