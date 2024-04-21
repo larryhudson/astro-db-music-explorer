@@ -35,7 +35,8 @@ export async function GET(Astro: APIContext) {
 
 	if (!spotifySearchResponse.ok) {
 		console.log({ status: spotifySearchResponse.status, statusText: spotifySearchResponse.statusText });
-		return new Response(null, {
+		const responseText = await spotifySearchResponse.text();
+		return new Response(responseText, {
 			status: spotifySearchResponse.status,
 			statusText: spotifySearchResponse.statusText
 		});
